@@ -128,22 +128,6 @@ const VideoUploading: () => JSX.Element = () =>
     description: 'This example shows how to upload video frame to WebGPU.',
     gui: true,
     init,
-    sources: [
-      // {
-      //   name: __filename.substring(__dirname.length + 1),
-      //   contents: __SOURCE__,
-      // },
-      // {
-      //   name: '../../shaders/fullscreenTexturedQuad.wgsl',
-      //   contents: fullscreenTexturedQuadWGSL,
-      //   editable: true,
-      // },
-      // {
-      //   name: '../../shaders/sampleExternalTexture.wgsl',
-      //   contents: sampleExternalTextureWGSL,
-      //   editable: true,
-      // },
-    ],
     filename: __filename,
   });
 

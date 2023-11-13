@@ -34,6 +34,9 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
       <div className={styles.wrapper}>
         <Component {...pageProps} />
       </div>
+      {/* <div>
+        <Component {...pageProps} />
+      </div> */}
     </>
   );
 };

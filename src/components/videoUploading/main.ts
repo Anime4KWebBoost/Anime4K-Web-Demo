@@ -9,7 +9,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   video.loop = true;
   video.autoplay = true;
   video.muted = true;
-  video.src = '../assets/video/pano.webm';
+  video.src = '../assets/video/test.mp4';
   await video.play();
 
   const adapter = await navigator.gpu.requestAdapter();
@@ -129,20 +129,20 @@ const VideoUploading: () => JSX.Element = () =>
     gui: true,
     init,
     sources: [
-      {
-        name: __filename.substring(__dirname.length + 1),
-        contents: __SOURCE__,
-      },
-      {
-        name: '../../shaders/fullscreenTexturedQuad.wgsl',
-        contents: fullscreenTexturedQuadWGSL,
-        editable: true,
-      },
-      {
-        name: '../../shaders/sampleExternalTexture.wgsl',
-        contents: sampleExternalTextureWGSL,
-        editable: true,
-      },
+      // {
+      //   name: __filename.substring(__dirname.length + 1),
+      //   contents: __SOURCE__,
+      // },
+      // {
+      //   name: '../../shaders/fullscreenTexturedQuad.wgsl',
+      //   contents: fullscreenTexturedQuadWGSL,
+      //   editable: true,
+      // },
+      // {
+      //   name: '../../shaders/sampleExternalTexture.wgsl',
+      //   contents: sampleExternalTextureWGSL,
+      //   editable: true,
+      // },
     ],
     filename: __filename,
   });

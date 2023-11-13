@@ -11,7 +11,15 @@
   "dependencies": {
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.0.2"
+    "next": "14.0.2",
+    "@types/dom-mediacapture-transform": "^0.1.5",
+    "codemirror": "^5.58.2",
+    "dat.gui": "^0.7.6",
+    "file-loader": "^6.2.0",
+    "stanford-dragon": "1.1.1",
+    "stats-js": "^1.0.1",
+    "teapot": "1.0.0",
+    "wgpu-matrix": "^2.5.0"
   },
   "devDependencies": {
     "typescript": "^5",
@@ -19,6 +27,18 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",
-    "eslint-config-next": "14.0.2"
+    "eslint-config-next": "14.0.2",
+    "@next/eslint-plugin-next": "^13.0.0",
+    "@types/codemirror": "0.0.97",
+    "@types/dat.gui": "^0.7.6",
+    "@types/stats.js": "^0.17.0",
+    "@typescript-eslint/eslint-plugin": "^5.41.0",
+    "@typescript-eslint/parser": "^5.41.0",
+    "@webgpu/types": "^0.1.38",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react": "^7.31.10",
+    "prettier": "^2.7.1",
+    "raw-loader": "^4.0.2"
   }
 }

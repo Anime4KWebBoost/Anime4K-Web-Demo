@@ -110,9 +110,9 @@ const SampleLayout: React.FunctionComponent<
         <a
           target="_blank"
           rel="noreferrer"
-          href={`https://github.com/${process.env.REPOSITORY_NAME}/tree/main/${props.filename}`}
+          href={`https://github.com/Anime4KWebBoost/Anime4K-Web-Demo`}
         >
-          See it on Github!
+          Github Repo
         </a>
         <p>{props.description}</p>
         {error ? (

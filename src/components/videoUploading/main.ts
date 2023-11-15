@@ -124,7 +124,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
 const VideoUploading: () => JSX.Element = () =>
   makeSample({
-    name: 'Video Uploading',
+    name: 'GPU accelerated Anime 4K upscaling',
     description: 'This example shows how to upload video frame to WebGPU.',
     gui: true,
     init,

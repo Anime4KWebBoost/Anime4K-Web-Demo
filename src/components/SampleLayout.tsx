@@ -30,7 +30,6 @@ const SampleLayout: React.FunctionComponent<
   }>
 > = (props) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
   const guiParentRef = useRef<HTMLDivElement | null>(null);
   const gui: GUI | undefined = useMemo(() => {
     if (props.gui && process.browser) {
@@ -52,6 +51,16 @@ const SampleLayout: React.FunctionComponent<
   const [error, setError] = useState<unknown | null>(null);
 
   useEffect(() => {
+    if (gui && guiParentRef.current) {
+      guiParentRef.current.appendChild(gui.domElement);
+
+      // HACK: useEffect() is sometimes called twice, resulting in the GUI being populated twice.
+      // Erase any existing controllers before calling init() on the sample.
+      while (gui.__controllers.length > 0) {
+        gui.__controllers[0].remove();
+      }
+    }
+
     const pageState = {
       active: true,
     };
@@ -85,35 +94,8 @@ const SampleLayout: React.FunctionComponent<
 
   return (
     <main>
-      <Head>
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-            .CodeMirror {
-              height: auto !important;
-              margin: 1em 0;
-            }
-
-            .CodeMirror-scroll {
-              height: auto !important;
-              overflow: visible !important;
-            }
-          `,
-          }}
-        />
-        <title>{`${props.name} - WebGPU Samples`}</title>
-        <meta name="description" content={props.description} />
-        <meta httpEquiv="origin-trial" content={props.originTrial} />
-      </Head>
       <div>
         <h1>{props.name}</h1>
-        <a
-          target="_blank"
-          rel="noreferrer"
-          href={`https://github.com/${process.env.REPOSITORY_NAME}/tree/main/${props.filename}`}
-        >
-          See it on Github!
-        </a>
         <p>{props.description}</p>
         {error ? (
           <>

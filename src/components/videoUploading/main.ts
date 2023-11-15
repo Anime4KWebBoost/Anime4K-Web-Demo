@@ -1,4 +1,4 @@
-import { makeSample, SampleInit } from '../SampleLayout';
+import { makeSample, SampleInit } from '../../components/SampleLayout';
 
 import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgsl';
 import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
@@ -60,11 +60,17 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
   const settings = {
     requestFrame: 'requestAnimationFrame',
+    shaders: 'shader 1',
   };
 
   gui.add(settings, 'requestFrame', [
     'requestAnimationFrame',
     'requestVideoFrameCallback',
+  ]);
+
+  gui.add(settings, 'shaders', [
+    'shader 1',
+    'shader 2'
   ]);
 
   function frame() {
@@ -124,7 +130,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
 const VideoUploading: () => JSX.Element = () =>
   makeSample({
-    name: 'Video Uploading',
+    name: 'WebGPU Accelerated Anime 4K Upscaling',
     description: 'This example shows how to upload video frame to WebGPU.',
     gui: true,
     init,

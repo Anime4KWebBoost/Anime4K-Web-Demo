@@ -16,6 +16,7 @@ export type SampleInit = (params: {
   pageState: { active: boolean };
   gui?: GUI;
   stats?: Stats;
+  videoURL?: string;
 }) => void | Promise<void>;
 
 const SampleLayout: React.FunctionComponent<
@@ -48,6 +49,15 @@ const SampleLayout: React.FunctionComponent<
     return undefined;
   }, []);
 
+  const [videoURL, setVideoURL] = useState('../assets/video/huh_cat.mp4');
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const localURL = URL.createObjectURL(file);
+      setVideoURL(localURL);
+    }
+  };
+
   const [error, setError] = useState<unknown | null>(null);
 
   useEffect(() => {
@@ -77,6 +87,7 @@ const SampleLayout: React.FunctionComponent<
         pageState,
         gui,
         stats,
+        videoURL,
       });
 
       if (p instanceof Promise) {
@@ -90,7 +101,7 @@ const SampleLayout: React.FunctionComponent<
       setError(err);
     }
     return cleanup;
-  }, []);
+  }, [videoURL]);
 
   return (
     <main>
@@ -123,6 +134,7 @@ const SampleLayout: React.FunctionComponent<
         ></div>
         <canvas ref={canvasRef}></canvas>
       </div>
+      <input type="file" accept="video/*" onChange={handleFileChange} />
     </main>
   );
 };

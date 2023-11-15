@@ -3,14 +3,17 @@ import { makeSample, SampleInit } from '../../components/SampleLayout';
 import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgsl';
 import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
 
-const init: SampleInit = async ({ canvas, pageState, gui }) => {
+const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   // Set video element
   const video = document.createElement('video');
   video.loop = true;
   video.autoplay = true;
   video.muted = true;
-  video.src = '../assets/video/test.mp4';
+  video.src = videoURL;
   await video.play();
+
+  const aspectRatio = video.videoHeight / video.videoWidth;
+  canvas.style.height = `calc(80vw * ${aspectRatio})`;
 
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();

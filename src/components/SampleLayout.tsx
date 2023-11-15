@@ -18,6 +18,13 @@ export type SampleInit = (params: {
   stats?: Stats;
 }) => void | Promise<void>;
 
+type SourceFileInfo = {
+  name: string;
+  contents: string;
+  editable?: boolean;
+};
+
+
 const SampleLayout: React.FunctionComponent<
   React.PropsWithChildren<{
     name: string;
@@ -27,8 +34,13 @@ const SampleLayout: React.FunctionComponent<
     gui?: boolean;
     stats?: boolean;
     init: SampleInit;
+    sources: SourceFileInfo[];
   }>
 > = (props) => {
+  // Handle slider value change
+  const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSliderValue(parseInt(event.target.value, 10));
+  };
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const guiParentRef = useRef<HTMLDivElement | null>(null);
@@ -50,7 +62,9 @@ const SampleLayout: React.FunctionComponent<
   }, []);
 
   const [error, setError] = useState<unknown | null>(null);
+  const [sliderValue, setSliderValue] = useState(2); // State for the slider value
 
+  
   useEffect(() => {
     const pageState = {
       active: true,
@@ -140,6 +154,16 @@ const SampleLayout: React.FunctionComponent<
           ref={guiParentRef}
         ></div>
         <canvas ref={canvasRef}></canvas>
+      </div>
+      <div className={styles.sliderContainer}>
+        <input 
+          type="range" 
+          min="1" 
+          max="10" 
+          value={sliderValue} 
+          onChange={handleSliderChange} 
+        />
+        <p>Push: {sliderValue}</p>
       </div>
     </main>
   );

@@ -67,6 +67,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     'requestVideoFrameCallback',
   ]);
 
+
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;

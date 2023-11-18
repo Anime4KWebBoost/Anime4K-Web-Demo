@@ -64,7 +64,13 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   const settings = {
     requestFrame: 'requestAnimationFrame',
     shaders: 'shader 1',
+    controlValue: 2,
   };
+
+  const strengthBuffer = device.createBuffer({
+    size: 4,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
 
   gui.add(settings, 'requestFrame', [
     'requestAnimationFrame',
@@ -75,6 +81,9 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     'shader 1',
     'shader 2'
   ]);
+  gui.add(settings, 'controlValue', 0, 10, 1).name('Control Value').onChange((value) => {
+    device.queue.writeBuffer(strengthBuffer, 0, new Float32Array([value]));
+  });
 
   function frame() {
     // Sample is no longer the active page.
@@ -83,6 +92,12 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     const uniformBindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [
+        {
+          binding: 0,
+          resource: {
+            buffer: strengthBuffer,
+          },
+        },
         {
           binding: 1,
           resource: sampler,

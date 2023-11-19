@@ -125,6 +125,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         {
           binding: 2,
           resource: videoFrameTexture.createView(),
+          //resource: texture.createView(),
         },
         // {
         //   binding: 3, // For _Strength

@@ -92,12 +92,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     const uniformBindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: strengthBuffer,
-          },
-        },
+        
         {
           binding: 1,
           resource: sampler,
@@ -108,6 +103,13 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
             source: video,
           }),
         },
+        {
+          binding: 3, // Add this entry to match the layout
+          resource: {
+            buffer: strengthBuffer,
+          },
+        }
+        
       ],
     });
 

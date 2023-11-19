@@ -56,7 +56,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     },
   });
 
-  //test texture
+  //tes
   const imgBitmap = await createImageBitmap(await (await fetch('https://webgpufundamentals.org/webgpu/resources/images/f-texture.png')).blob());
   const texture = device.createTexture({
     size: [imgBitmap.width, imgBitmap.height, 1],
@@ -94,10 +94,26 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     device.queue.writeBuffer(strengthBuffer, 0, new Float32Array([value]));
   });
 
+  const videoFrameTexture = device.createTexture({
+    size: [video.videoWidth, video.videoHeight, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+});
+
+  
+  function updateVideoFrameTexture() {
+    // Copy the current video frame to the texture
+    device.queue.copyExternalImageToTexture(
+      { source: video },
+      { texture: videoFrameTexture },
+      [video.videoWidth, video.videoHeight]
+    );
+  }
+
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
-
+    updateVideoFrameTexture();
     const uniformBindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [
@@ -108,7 +124,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         },
         {
           binding: 2,
-          resource: texture.createView(),
+          resource: videoFrameTexture.createView(),
         },
         // {
         //   binding: 3, // For _Strength

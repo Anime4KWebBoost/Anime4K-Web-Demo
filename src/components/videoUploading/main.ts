@@ -56,6 +56,15 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     },
   });
 
+  //test texture
+  const imgBitmap = await createImageBitmap(await (await fetch('https://webgpufundamentals.org/webgpu/resources/images/f-texture.png')).blob());
+  const texture = device.createTexture({
+    size: [imgBitmap.width, imgBitmap.height, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, [imgBitmap.width, imgBitmap.height]);
+
   const sampler = device.createSampler({
     magFilter: 'linear',
     minFilter: 'linear',
@@ -84,7 +93,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   gui.add(settings, 'controlValue', 0, 10, 1).name('Control Value').onChange((value) => {
     device.queue.writeBuffer(strengthBuffer, 0, new Float32Array([value]));
   });
-  
+
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
@@ -99,17 +108,14 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         },
         {
           binding: 2,
-          resource: device.importExternalTexture({
-            source: video,
-          }),
+          resource: texture.createView(),
         },
         // {
-        //   binding: 3, // Add this entry to match the layout
+        //   binding: 3, // For _Strength
         //   resource: {
         //     buffer: strengthBuffer,
         //   },
-        // }
-        
+        // },
       ],
     });
 

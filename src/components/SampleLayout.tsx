@@ -16,14 +16,8 @@ export type SampleInit = (params: {
   pageState: { active: boolean };
   gui?: GUI;
   stats?: Stats;
+  videoURL?: string;
 }) => void | Promise<void>;
-
-type SourceFileInfo = {
-  name: string;
-  contents: string;
-  editable?: boolean;
-};
-
 
 const SampleLayout: React.FunctionComponent<
   React.PropsWithChildren<{
@@ -34,15 +28,9 @@ const SampleLayout: React.FunctionComponent<
     gui?: boolean;
     stats?: boolean;
     init: SampleInit;
-    sources: SourceFileInfo[];
   }>
 > = (props) => {
-  // Handle slider value change
-  const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSliderValue(parseInt(event.target.value, 10));
-  };
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
   const guiParentRef = useRef<HTMLDivElement | null>(null);
   const gui: GUI | undefined = useMemo(() => {
     if (props.gui && process.browser) {
@@ -61,11 +49,28 @@ const SampleLayout: React.FunctionComponent<
     return undefined;
   }, []);
 
-  const [error, setError] = useState<unknown | null>(null);
-  const [sliderValue, setSliderValue] = useState(2); // State for the slider value
+  const [videoURL, setVideoURL] = useState('../assets/video/huh_cat.mp4');
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const localURL = URL.createObjectURL(file);
+      setVideoURL(localURL);
+    }
+  };
 
-  
+  const [error, setError] = useState<unknown | null>(null);
+
   useEffect(() => {
+    if (gui && guiParentRef.current) {
+      guiParentRef.current.appendChild(gui.domElement);
+
+      // HACK: useEffect() is sometimes called twice, resulting in the GUI being populated twice.
+      // Erase any existing controllers before calling init() on the sample.
+      while (gui.__controllers.length > 0) {
+        gui.__controllers[0].remove();
+      }
+    }
+
     const pageState = {
       active: true,
     };
@@ -82,6 +87,7 @@ const SampleLayout: React.FunctionComponent<
         pageState,
         gui,
         stats,
+        videoURL,
       });
 
       if (p instanceof Promise) {
@@ -95,39 +101,12 @@ const SampleLayout: React.FunctionComponent<
       setError(err);
     }
     return cleanup;
-  }, []);
+  }, [videoURL]);
 
   return (
     <main>
-      <Head>
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-            .CodeMirror {
-              height: auto !important;
-              margin: 1em 0;
-            }
-
-            .CodeMirror-scroll {
-              height: auto !important;
-              overflow: visible !important;
-            }
-          `,
-          }}
-        />
-        <title>{`${props.name} - WebGPU Samples`}</title>
-        <meta name="description" content={props.description} />
-        <meta httpEquiv="origin-trial" content={props.originTrial} />
-      </Head>
       <div>
         <h1>{props.name}</h1>
-        <a
-          target="_blank"
-          rel="noreferrer"
-          href={`https://github.com/Anime4KWebBoost/Anime4K-Web-Demo`}
-        >
-          Github Repo
-        </a>
         <p>{props.description}</p>
         {error ? (
           <>
@@ -155,16 +134,7 @@ const SampleLayout: React.FunctionComponent<
         ></div>
         <canvas ref={canvasRef}></canvas>
       </div>
-      <div className={styles.sliderContainer}>
-        <input 
-          type="range" 
-          min="1" 
-          max="10" 
-          value={sliderValue} 
-          onChange={handleSliderChange} 
-        />
-        <p>Push: {sliderValue}</p>
-      </div>
+      <input type="file" accept="video/*" onChange={handleFileChange} />
     </main>
   );
 };

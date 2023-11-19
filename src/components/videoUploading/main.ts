@@ -84,7 +84,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   gui.add(settings, 'controlValue', 0, 10, 1).name('Control Value').onChange((value) => {
     device.queue.writeBuffer(strengthBuffer, 0, new Float32Array([value]));
   });
-
+  
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
@@ -103,12 +103,12 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
             source: video,
           }),
         },
-        {
-          binding: 3, // Add this entry to match the layout
-          resource: {
-            buffer: strengthBuffer,
-          },
-        }
+        // {
+        //   binding: 3, // Add this entry to match the layout
+        //   resource: {
+        //     buffer: strengthBuffer,
+        //   },
+        // }
         
       ],
     });

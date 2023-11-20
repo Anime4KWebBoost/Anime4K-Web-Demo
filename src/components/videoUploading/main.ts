@@ -57,7 +57,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   });
 
   //tes
-  const imgBitmap = await createImageBitmap(await (await fetch('https://webgpufundamentals.org/webgpu/resources/images/f-texture.png')).blob());
+  const imgBitmap = await createImageBitmap(await (await fetch('../assets/video/test.jpg')).blob());
   const texture = device.createTexture({
     size: [imgBitmap.width, imgBitmap.height, 1],
     format: 'rgba8unorm',
@@ -124,8 +124,8 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         },
         {
           binding: 2,
-          resource: videoFrameTexture.createView(),
-          //resource: texture.createView(),
+          //resource: videoFrameTexture.createView(),
+          resource: texture.createView(),
         },
         // {
         //   binding: 3, // For _Strength

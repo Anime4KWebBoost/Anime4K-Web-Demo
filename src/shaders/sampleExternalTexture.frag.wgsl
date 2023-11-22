@@ -3,7 +3,7 @@
 
 // Function to calculate luminance
 fn get_luma(rgba: vec4<f32>) -> f32 {
-    return dot(vec4<f32>(0.299, 0.587, 0.114, 0.0)， rgba);
+    return dot(rgba, vec4<f32>(0.299, 0.587, 0.114, 0.0));
 }
 
 // Implement max3v and min3v
@@ -47,7 +47,6 @@ fn lumGaussian7(pos: vec2<f32>, d: vec2<f32>, tex: texture_2d<f32>) -> f32 {
 
 // Fragment shader entry point
 @fragment
-
 fn main(@location(0) fragUV: vec2<f32>) -> @location(0) vec4<f32> {
     let STRENGTH: f32 = 0.6;
     let BLUR_CURVE: f32 = 0.6;
@@ -76,7 +75,6 @@ fn main(@location(0) fragUV: vec2<f32>) -> @location(0) vec4<f32> {
 
     return resultColor;
 }
-
 
 //fn main(@location(0) fragUV : vec2<f32>) -> @location(0) vec4<f32> {
 //  return textureSampleBaseClampToEdge(myTexture, mySampler, fragUV);

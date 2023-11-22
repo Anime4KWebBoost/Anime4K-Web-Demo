@@ -1,5 +1,6 @@
 @group(0) @binding(1) var mySampler: sampler;
 @group(0) @binding(2) var myTexture: texture_2d<f32>;
+@group(0) @binding(3) var<uniform> strength: f32;
 
 // Function to calculate luminance
 fn get_luma(rgba: vec4<f32>) -> f32 {
@@ -48,7 +49,7 @@ fn lumGaussian7(pos: vec2<f32>, d: vec2<f32>, tex: texture_2d<f32>) -> f32 {
 // Fragment shader entry point
 @fragment
 fn main(@location(0) fragUV: vec2<f32>) -> @location(0) vec4<f32> {
-    let STRENGTH: f32 = 0.6;
+    let STRENGTH: f32 = strength;
     let BLUR_CURVE: f32 = 0.6;
     let BLUR_THRESHOLD: f32 = 0.1;
     let NOISE_THRESHOLD: f32 = 0.001;

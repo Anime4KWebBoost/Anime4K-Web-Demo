@@ -32,8 +32,30 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     alphaMode: 'premultiplied',
   });
 
+  const bindGroupLayout = device.createBindGroupLayout({
+    label: "Bind Group Layout",
+    entries: [{
+      binding: 1,
+      visibility: GPUShaderStage.FRAGMENT,
+      sampler: {}
+    }, {
+      binding: 2,
+      visibility: GPUShaderStage.FRAGMENT,
+      texture: {}
+    }, {
+      binding: 3,
+      visibility: GPUShaderStage.FRAGMENT,
+      buffer: { type: "uniform" }
+    }]
+  });
+
+  const pipelineLayout = device.createPipelineLayout({
+    label: "Cell Pipeline Layout",
+    bindGroupLayouts: [ bindGroupLayout ],
+  });
+
   const pipeline = device.createRenderPipeline({
-    layout: 'auto',
+    layout: pipelineLayout,
     vertex: {
       module: device.createShaderModule({
         code: fullscreenTexturedQuadWGSL,
@@ -127,12 +149,12 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
           //resource: videoFrameTexture.createView(),
           resource: texture.createView(),
         },
-        // {
-        //   binding: 3, // For _Strength
-        //   resource: {
-        //     buffer: strengthBuffer,
-        //   },
-        // },
+        {
+          binding: 3, // For _Strength
+          resource: {
+            buffer: strengthBuffer,
+          },
+        },
       ],
     });
 

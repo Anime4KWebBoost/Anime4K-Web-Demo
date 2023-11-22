@@ -4,6 +4,29 @@ import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgs
 import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
 
 const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
+
+  const settings = {
+    requestFrame: 'requestAnimationFrame',
+    shaders: 'shader 1',
+    r: 0.0,
+    g: 0.0,
+    b: 0.0,
+  };
+
+  gui.add(settings, 'requestFrame', [
+    'requestAnimationFrame',
+    'requestVideoFrameCallback',
+  ]);
+
+  gui.add(settings, 'shaders', [
+    'shader 1',
+    'shader 2'
+  ]);
+
+  gui.add(settings, "r", 0.0, 1.0);
+  gui.add(settings, "g", 0.0, 1.0);
+  gui.add(settings, "b", 0.0, 1.0);
+
   // Set video element
   const video = document.createElement('video');
   video.loop = true;
@@ -26,14 +49,44 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   canvas.height = canvas.clientHeight * devicePixelRatio;
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
+  const uniformArray = new Float32Array([settings.r, settings.g, settings.b, 1.0]);
+  const uniformBuffer = device.createBuffer({
+    label: "strength buffer",
+    size: uniformArray.byteLength,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+  });
+  device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
+
   context.configure({
     device,
     format: presentationFormat,
     alphaMode: 'premultiplied',
   });
 
+  const bindGroupLayout = device.createBindGroupLayout({
+    label: "Bind Group Layout",
+    entries: [{
+      binding: 1,
+      visibility: GPUShaderStage.FRAGMENT,
+      sampler: {}
+    }, {
+      binding: 2,
+      visibility: GPUShaderStage.FRAGMENT,
+      externalTexture: {}
+    }, {
+      binding: 3,
+      visibility: GPUShaderStage.FRAGMENT,
+      buffer: { type: "uniform" }
+    }]
+  });
+
+  const pipelineLayout = device.createPipelineLayout({
+    label: "Pipeline Layout",
+    bindGroupLayouts: [ bindGroupLayout ],
+  });
+
   const pipeline = device.createRenderPipeline({
-    layout: 'auto',
+    layout: pipelineLayout,
     vertex: {
       module: device.createShaderModule({
         code: fullscreenTexturedQuadWGSL,
@@ -61,27 +114,14 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     minFilter: 'linear',
   });
 
-  const settings = {
-    requestFrame: 'requestAnimationFrame',
-    shaders: 'shader 1',
-  };
-
-  gui.add(settings, 'requestFrame', [
-    'requestAnimationFrame',
-    'requestVideoFrameCallback',
-  ]);
-
-  gui.add(settings, 'shaders', [
-    'shader 1',
-    'shader 2'
-  ]);
-
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
 
+    device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([settings.r, settings.g, settings.b, 1.0]));
+
     const uniformBindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
+      layout: bindGroupLayout,
       entries: [
         {
           binding: 1,
@@ -93,6 +133,12 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
             source: video,
           }),
         },
+        {
+          binding: 3,
+          resource:{
+            buffer: uniformBuffer,
+          }
+        }
       ],
     });
 

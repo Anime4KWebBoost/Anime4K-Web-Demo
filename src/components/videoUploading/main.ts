@@ -79,7 +79,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   });
 
   //tes
-  const imgBitmap = await createImageBitmap(await (await fetch('../assets/video/test.jpg')).blob());
+  const imgBitmap = await createImageBitmap(await (await fetch('../assets/video/test2.jpg')).blob());
   const texture = device.createTexture({
     size: [imgBitmap.width, imgBitmap.height, 1],
     format: 'rgba8unorm',

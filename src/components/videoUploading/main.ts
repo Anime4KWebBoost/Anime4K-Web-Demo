@@ -112,7 +112,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     'shader 1',
     'shader 2'
   ]);
-  gui.add(settings, 'controlValue', 0, 10, 1).name('Control Value').onChange((value) => {
+  gui.add(settings, 'controlValue', 0, 10, 0.1).name('Control Value').onChange((value) => {
     device.queue.writeBuffer(strengthBuffer, 0, new Float32Array([value]));
   });
 

@@ -2,10 +2,8 @@ import { makeSample, SampleInit } from '../../components/SampleLayout';
 
 import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgsl';
 import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
-import luminationWGSL from '../../shaders/lumination.wgsl';
-import deblurDoGXWGSL from '../../shaders/deblurDoGX.wgsl';
-import deblurDoGYWGSL from '../../shaders/deblurDoGY.wgsl';
-import deblurDoGApplyWGSL from '../../shaders/deblurDoGApply.wgsl';
+
+import DeblurPipeline from './deblur';
 
 const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   // Set video element
@@ -43,47 +41,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     alphaMode: 'premultiplied',
   });
 
-  // configure lumination pipeline
-  const luminationBindGroupLayout = device.createBindGroupLayout({
-    label: "lumination Bind Group Layout",
-    entries: [
-      {
-        binding: 0, // input frame as texture
-        visibility: GPUShaderStage.COMPUTE,
-        texture: {}
-      },
-      {
-        binding: 1, // output texture
-        visibility: GPUShaderStage.COMPUTE,
-        storageTexture: {
-          access: "write-only",
-          format: "rgba16float",
-        },
-      }
-    ]
-  });
-
-  const luminationModule = device.createShaderModule({
-    label: 'lumination shader',
-    code: luminationWGSL,
-  });
-
-  const luminationPipelineLayout = device.createPipelineLayout({
-    label: "lumination pipeline layout",
-    bindGroupLayouts: [ luminationBindGroupLayout ],
-  });
-
-  const luminationPipeline = device.createComputePipeline({
-    label: 'lumination pipeline',
-    layout: luminationPipelineLayout,
-    compute: {
-      module: luminationModule,
-      entryPoint: 'computeMain',
-    }
-  });
-
   // preparing textures for compute pipeline
-  // bind 0: input frame texture
   const videoFrameTexture = device.createTexture({
     size: [WIDTH, HEIGHT, 1],
     format: 'rgba16float',
@@ -99,177 +57,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     );
   }
 
-  // image texture for static testing
-  const imgBitmap = await createImageBitmap(await (await fetch('../assets/image/ttes.jpg')).blob());
-  const imageTexture = device.createTexture({
-    size: [imgBitmap.width, imgBitmap.height, 1],
-    format: 'rgba8unorm',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
-  });
-  device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture: imageTexture }, [imgBitmap.width, imgBitmap.height]);
-  WIDTH = imgBitmap.width;
-  HEIGHT = imgBitmap.height;
-
-  // bind 1: output texture
-  const luminationTexture = device.createTexture({
-    size: [WIDTH, HEIGHT, 1],
-    format: 'rgba16float',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
-  });
-
-  // configure deblurDoGX pipeline
-  const deblurDoGXBindGroupLayout = device.createBindGroupLayout({
-    label: "deblurDoGX Bind Group Layout",
-    entries: [
-      {
-        binding: 0, // input frame as texture
-        visibility: GPUShaderStage.COMPUTE,
-        texture: {}
-      },
-      {
-        binding: 1, // output texture
-        visibility: GPUShaderStage.COMPUTE,
-        storageTexture: {
-          access: "write-only",
-          format: "rgba16float",
-        },
-      }
-    ]
-  });
-
-  const deblurDoGXModule = device.createShaderModule({
-    label: 'deblurDoGX shader',
-    code: deblurDoGXWGSL,
-  });
-
-  const deblurDoGXPipelineLayout = device.createPipelineLayout({
-    label: "deblurDoGX pipeline layout",
-    bindGroupLayouts: [ deblurDoGXBindGroupLayout ],
-  });
-
-  const deblurDoGXPipeline = device.createComputePipeline({
-    label: 'deblurDoGX pipeline',
-    layout: deblurDoGXPipelineLayout,
-    compute: {
-      module: deblurDoGXModule,
-      entryPoint: 'computeMain',
-    }
-  });
-
-  // bind 1: output texture
-  const deblurDoGXTexture = device.createTexture({
-    size: [WIDTH, HEIGHT, 1],
-    format: 'rgba16float',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
-  });
-
-  // configure deblurDoGY pipeline
-  const deblurDoGYBindGroupLayout = device.createBindGroupLayout({
-    label: "deblurDoGY Bind Group Layout",
-    entries: [
-      {
-        binding: 0, // input frame as texture
-        visibility: GPUShaderStage.COMPUTE,
-        texture: {}
-      },
-      {
-        binding: 1, // output texture
-        visibility: GPUShaderStage.COMPUTE,
-        storageTexture: {
-          access: "write-only",
-          format: "rgba16float",
-        },
-      }
-    ]
-  });
-
-  const deblurDoGYModule = device.createShaderModule({
-    label: 'deblurDoGY shader',
-    code: deblurDoGYWGSL,
-  });
-
-  const deblurDoGYPipelineLayout = device.createPipelineLayout({
-    label: "deblurDoGY pipeline layout",
-    bindGroupLayouts: [ deblurDoGYBindGroupLayout ],
-  });
-
-  const deblurDoGYPipeline = device.createComputePipeline({
-    label: 'deblurDoGY pipeline',
-    layout: deblurDoGYPipelineLayout,
-    compute: {
-      module: deblurDoGYModule,
-      entryPoint: 'computeMain',
-    }
-  });
-
-  // bind 1: output texture
-  const deblurDoGYTexture = device.createTexture({
-    size: [WIDTH, HEIGHT, 1],
-    format: 'rgba16float',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
-  });
-
-  // configure deblurDoGApply pipeline
-  const deblurDoGApplyBindGroupLayout = device.createBindGroupLayout({
-    label: "deblurDoGApply Bind Group Layout",
-    entries: [
-      {
-        binding: 0, // input frame as texture
-        visibility: GPUShaderStage.COMPUTE,
-        texture: {}
-      },
-      {
-        binding: 1,
-        visibility: GPUShaderStage.COMPUTE,
-        texture: {}
-      },
-      {
-        binding: 2,
-        visibility: GPUShaderStage.COMPUTE,
-        texture: {}
-      },
-      {
-        binding: 3, // output texture
-        visibility: GPUShaderStage.COMPUTE,
-        storageTexture: {
-          access: "write-only",
-          format: "rgba16float",
-        },
-      },
-      {
-        binding: 4,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: "uniform" }
-      },
-    ]
-  });
-
-  const deblurDoGApplyModule = device.createShaderModule({
-    label: 'deblurDoGApply shader',
-    code: deblurDoGApplyWGSL,
-  });
-
-  const deblurDoGApplyPipelineLayout = device.createPipelineLayout({
-    label: "deblurDoGApply pipeline layout",
-    bindGroupLayouts: [ deblurDoGApplyBindGroupLayout ],
-  });
-
-  const deblurDoGApplyPipeline = device.createComputePipeline({
-    label: 'deblurDoGApply pipeline',
-    layout: deblurDoGApplyPipelineLayout,
-    compute: {
-      module: deblurDoGApplyModule,
-      entryPoint: 'computeMain',
-    }
-  });
-
-  // bind 1: output texture
-  const deblurDoGApplyTexture = device.createTexture({
-    size: [WIDTH, HEIGHT, 1],
-    format: 'rgba16float',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
-  });
-
+  const deblurPipeline = new DeblurPipeline(device, videoFrameTexture);
 
   // configure final rendering pipeline
   const renderBindGroupLayout = device.createBindGroupLayout({
@@ -317,16 +105,6 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     },
   });
 
-  // prepare resources for render pipeline
-  // bind 0: strength uniform
-  const strengthBuffer = device.createBuffer({
-    size: 4,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
-  function updateStrength(strength: number) {
-    device.queue.writeBuffer(strengthBuffer, 0, new Float32Array([strength]));
-  }
-
   // bind 1: sampler
   const sampler = device.createSampler({
     magFilter: 'linear',
@@ -351,7 +129,8 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   ]);
 
   gui.add(settings, 'controlValue', 0, 10, 0.1).name('Control Value').onChange((value) => {
-    updateStrength(value);
+    // updateStrength(value);
+    deblurPipeline.updateStrength(value);
   });
 
 
@@ -362,107 +141,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     // initialize command recorder
     const commandEncoder = device.createCommandEncoder();
 
-    // configure lumination pass
-    const luminationBindGroup = device.createBindGroup({
-      layout: luminationBindGroupLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: imageTexture.createView(),
-        },
-        {
-          binding: 1,
-          resource: luminationTexture.createView(),
-        }
-      ]
-    });
-
-    // dispatch lumination pipeline
-    const luminationPass = commandEncoder.beginComputePass();
-    luminationPass.setPipeline(luminationPipeline);
-    luminationPass.setBindGroup(0, luminationBindGroup);
-    luminationPass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
-    luminationPass.end();
-
-    // configure deblurDoGX pass
-    const deblurDoGXBindGroup = device.createBindGroup({
-      layout: deblurDoGXBindGroupLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: luminationTexture.createView(),
-        },
-        {
-          binding: 1,
-          resource: deblurDoGXTexture.createView(),
-        }
-      ]
-    });
-
-    // dispatch deblurDoGX pipeline
-    const deblurDoGXPass = commandEncoder.beginComputePass();
-    deblurDoGXPass.setPipeline(deblurDoGXPipeline);
-    deblurDoGXPass.setBindGroup(0, deblurDoGXBindGroup);
-    deblurDoGXPass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
-    deblurDoGXPass.end();
-
-    // configure deblurDoGY pass
-    const deblurDoGYBindGroup = device.createBindGroup({
-      layout: deblurDoGYBindGroupLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: deblurDoGXTexture.createView(),
-        },
-        {
-          binding: 1,
-          resource: deblurDoGYTexture.createView(),
-        }
-      ]
-    });
-
-    // dispatch deblurDoGY pipeline
-    const deblurDoGYPass = commandEncoder.beginComputePass();
-    deblurDoGYPass.setPipeline(deblurDoGYPipeline);
-    deblurDoGYPass.setBindGroup(0, deblurDoGYBindGroup);
-    deblurDoGYPass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
-    deblurDoGYPass.end();
-
-    // configure deblurDoGApply pass
-    const deblurDoGApplyBindGroup = device.createBindGroup({
-      layout: deblurDoGApplyBindGroupLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: deblurDoGYTexture.createView(),
-        },
-        {
-          binding: 1,
-          resource: luminationTexture.createView(),
-        },
-        {
-          binding: 2,
-          resource: imageTexture.createView(),
-        },
-        {
-          binding: 3,
-          resource: deblurDoGApplyTexture.createView(),
-        },
-        {
-          binding: 4,
-          resource: {
-            buffer: strengthBuffer,
-          }
-        }
-      ]
-    });
-
-    // dispatch deblurDoGApply pipeline
-    const deblurDoGApplyPass = commandEncoder.beginComputePass();
-    deblurDoGApplyPass.setPipeline(deblurDoGApplyPipeline);
-    deblurDoGApplyPass.setBindGroup(0, deblurDoGApplyBindGroup);
-    deblurDoGApplyPass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
-    deblurDoGApplyPass.end();
+    deblurPipeline.generatePass(commandEncoder);
 
     // configure render pipeline
     const renderBindGroup = device.createBindGroup({
@@ -474,7 +153,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         },
         {
           binding: 1,
-          resource: deblurDoGApplyTexture.createView(),
+          resource: deblurPipeline.getOutputTexture().createView(),
         },
       ],
     });

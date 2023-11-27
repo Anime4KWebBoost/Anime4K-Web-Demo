@@ -22,12 +22,22 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
   if (pixel.x >= dim_out.x || pixel.y >= dim_out.y) {
     return;
   }
+  let pos: vec2u = vec2u(pixel.x, pixel.y);
+
+  // comparison
+  if (pixel.x < dim_out.x / 2 - 2) {
+    textureStore(tex_out, vec2u(pixel.x, pixel.y), textureLoad(tex_original, vec2u(pos.x, pos.y), 0));
+    return;
+  }
+  if (pixel.x <= dim_out.x / 2 + 2) {
+    textureStore(tex_out, vec2u(pixel.x, pixel.y), vec4(1.0, 0, 0, 1));
+    return;
+  }
 
   let BLUR_CURVE: f32 = strength;
   let BLUR_THRESHOLD: f32 = 0.1;
   let NOISE_THRESHOLD: f32 = 0.001;
 
-  let pos: vec2u = vec2u(pixel.x, pixel.y);
   let luma: vec4f = lumAt(pos.x, pos.y);
   let color: vec4f = colorAt(pos.x, pos.y);
 

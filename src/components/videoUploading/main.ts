@@ -100,15 +100,15 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   }
 
   // image texture for static testing
-  // const imgBitmap = await createImageBitmap(await (await fetch('../assets/video/test1.png')).blob());
-  // const imageTexture = device.createTexture({
-  //   size: [imgBitmap.width, imgBitmap.height, 1],
-  //   format: 'rgba8unorm',
-  //   usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
-  // });
-  // device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture: imageTexture }, [imgBitmap.width, imgBitmap.height]);
-  // WIDTH = imgBitmap.width;
-  // HEIGHT = imgBitmap.height;
+  const imgBitmap = await createImageBitmap(await (await fetch('../assets/image/ttes.jpg')).blob());
+  const imageTexture = device.createTexture({
+    size: [imgBitmap.width, imgBitmap.height, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture: imageTexture }, [imgBitmap.width, imgBitmap.height]);
+  WIDTH = imgBitmap.width;
+  HEIGHT = imgBitmap.height;
 
   // bind 1: output texture
   const luminationTexture = device.createTexture({
@@ -350,7 +350,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     'shader 2'
   ]);
 
-  gui.add(settings, 'controlValue', 0, 100, 0.1).name('Control Value').onChange((value) => {
+  gui.add(settings, 'controlValue', 0, 10, 0.1).name('Control Value').onChange((value) => {
     updateStrength(value);
   });
 
@@ -368,7 +368,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
       entries: [
         {
           binding: 0,
-          resource: videoFrameTexture.createView(),
+          resource: imageTexture.createView(),
         },
         {
           binding: 1,
@@ -442,7 +442,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         },
         {
           binding: 2,
-          resource: videoFrameTexture.createView(),
+          resource: imageTexture.createView(),
         },
         {
           binding: 3,

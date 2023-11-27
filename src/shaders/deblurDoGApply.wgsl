@@ -25,14 +25,14 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
   let pos: vec2u = vec2u(pixel.x, pixel.y);
 
   // comparison
-  if (pixel.x < dim_out.x / 2 - 2) {
-    textureStore(tex_out, vec2u(pixel.x, pixel.y), textureLoad(tex_original, vec2u(pos.x, pos.y), 0));
-    return;
-  }
-  if (pixel.x <= dim_out.x / 2 + 2) {
-    textureStore(tex_out, vec2u(pixel.x, pixel.y), vec4(1.0, 0, 0, 1));
-    return;
-  }
+  // if (pixel.x < dim_out.x / 2 - 2) {
+  //   textureStore(tex_out, vec2u(pixel.x, pixel.y), textureLoad(tex_original, vec2u(pos.x, pos.y), 0));
+  //   return;
+  // }
+  // if (pixel.x <= dim_out.x / 2 + 2) {
+  //   textureStore(tex_out, vec2u(pixel.x, pixel.y), vec4(1.0, 0, 0, 1));
+  //   return;
+  // }
 
   let BLUR_CURVE: f32 = strength;
   let BLUR_THRESHOLD: f32 = 0.1;

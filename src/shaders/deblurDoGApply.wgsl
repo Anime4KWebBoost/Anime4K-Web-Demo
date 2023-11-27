@@ -23,7 +23,7 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
     return;
   }
 
-  let BLUR_CURVE: f32 = 0.6;
+  let BLUR_CURVE: f32 = strength;
   let BLUR_THRESHOLD: f32 = 0.1;
   let NOISE_THRESHOLD: f32 = 0.001;
 

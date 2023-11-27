@@ -350,7 +350,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     'shader 2'
   ]);
 
-  gui.add(settings, 'controlValue', 0, 10, 0.1).name('Control Value').onChange((value) => {
+  gui.add(settings, 'controlValue', 0, 15, 0.1).name('Control Value').onChange((value) => {
     updateStrength(value);
   });
 

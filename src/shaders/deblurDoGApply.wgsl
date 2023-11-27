@@ -2,6 +2,7 @@
 @group(0) @binding(1) var tex_lum: texture_2d<f32>; // lumination texture
 @group(0) @binding(2) var tex_original: texture_2d<f32>;
 @group(0) @binding(3) var tex_out: texture_storage_2d<rgba16float, write>;
+@group(0) @binding(4) var<uniform> strength: f32;
 
 fn lumAt(x: u32, y: u32) -> vec4f { // read from lumination texture
   return textureLoad(tex_lum, vec2u(x, y), 0);
@@ -22,7 +23,6 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
     return;
   }
 
-  let STRENGTH: f32 = 0.6;
   let BLUR_CURVE: f32 = 0.6;
   let BLUR_THRESHOLD: f32 = 0.1;
   let NOISE_THRESHOLD: f32 = 0.001;
@@ -31,7 +31,7 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
   let luma: vec4f = lumAt(pos.x, pos.y);
   let color: vec4f = colorAt(pos.x, pos.y);
 
-  let c: f32 = (luma.x - color.x) * STRENGTH;
+  let c: f32 = (luma.x - color.x) * strength;
 
   let t_range: f32 = BLUR_THRESHOLD - NOISE_THRESHOLD;
 

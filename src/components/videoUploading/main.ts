@@ -15,13 +15,18 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   video.muted = true;
   video.src = videoURL;
   await video.play();
+  
+  // constants
+  let WIDTH = video.videoWidth;
+  let HEIGHT = video.videoHeight;
 
   // maintain canvas aspect ratio
-  const aspectRatio = video.videoHeight / video.videoWidth;
+  const aspectRatio = HEIGHT / WIDTH;
   canvas.style.height = `calc(80vw * ${aspectRatio})`;
 
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
+
 
   if (!pageState.active) return;
 
@@ -80,7 +85,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   // preparing textures for compute pipeline
   // bind 0: input frame texture
   const videoFrameTexture = device.createTexture({
-    size: [video.videoWidth, video.videoHeight, 1],
+    size: [WIDTH, HEIGHT, 1],
     format: 'rgba16float',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
   });
@@ -90,13 +95,23 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     device.queue.copyExternalImageToTexture(
       { source: video },
       { texture: videoFrameTexture },
-      [ video.videoWidth, video.videoHeight ]
+      [ WIDTH, HEIGHT ]
     );
   }
 
+  const imgBitmap = await createImageBitmap(await (await fetch('../assets/video/test1.png')).blob());
+  const imageTexture = device.createTexture({
+    size: [imgBitmap.width, imgBitmap.height, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture: imageTexture }, [imgBitmap.width, imgBitmap.height]);
+  WIDTH = imgBitmap.width;
+  HEIGHT = imgBitmap.height;
+
   // bind 1: output texture
   const luminationTexture = device.createTexture({
-    size: [video.videoWidth, video.videoHeight, 1],
+    size: [WIDTH, HEIGHT, 1],
     format: 'rgba16float',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
   });
@@ -142,7 +157,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
 
   // bind 1: output texture
   const deblurDoGXTexture = device.createTexture({
-    size: [video.videoWidth, video.videoHeight, 1],
+    size: [WIDTH, HEIGHT, 1],
     format: 'rgba16float',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
   });
@@ -188,7 +203,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
 
   // bind 1: output texture
   const deblurDoGYTexture = device.createTexture({
-    size: [video.videoWidth, video.videoHeight, 1],
+    size: [WIDTH, HEIGHT, 1],
     format: 'rgba16float',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
   });
@@ -219,7 +234,12 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
           access: "write-only",
           format: "rgba16float",
         },
-      }
+      },
+      {
+        binding: 4,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: "uniform" }
+      },
     ]
   });
 
@@ -244,7 +264,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
 
   // bind 1: output texture
   const deblurDoGApplyTexture = device.createTexture({
-    size: [video.videoWidth, video.videoHeight, 1],
+    size: [WIDTH, HEIGHT, 1],
     format: 'rgba16float',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
   });
@@ -257,15 +277,10 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
       {
         binding: 0,
         visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: "uniform" }
-      },
-      {
-        binding: 1,
-        visibility: GPUShaderStage.FRAGMENT,
         sampler: {}
       },
       {
-        binding: 2,
+        binding: 1,
         visibility: GPUShaderStage.FRAGMENT,
         texture: {}
       }
@@ -334,7 +349,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     'shader 2'
   ]);
 
-  gui.add(settings, 'controlValue', 0, 10, 1).name('Control Value').onChange((value) => {
+  gui.add(settings, 'controlValue', 0, 10, 0.1).name('Control Value').onChange((value) => {
     updateStrength(value);
   });
 
@@ -352,7 +367,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
       entries: [
         {
           binding: 0,
-          resource: videoFrameTexture.createView(),
+          resource: imageTexture.createView(),
         },
         {
           binding: 1,
@@ -365,7 +380,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     const luminationPass = commandEncoder.beginComputePass();
     luminationPass.setPipeline(luminationPipeline);
     luminationPass.setBindGroup(0, luminationBindGroup);
-    luminationPass.dispatchWorkgroups(Math.ceil(video.videoWidth / 8), Math.ceil(video.videoHeight / 8));
+    luminationPass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
     luminationPass.end();
 
     // configure deblurDoGX pass
@@ -387,7 +402,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     const deblurDoGXPass = commandEncoder.beginComputePass();
     deblurDoGXPass.setPipeline(deblurDoGXPipeline);
     deblurDoGXPass.setBindGroup(0, deblurDoGXBindGroup);
-    deblurDoGXPass.dispatchWorkgroups(Math.ceil(video.videoWidth / 8), Math.ceil(video.videoHeight / 8));
+    deblurDoGXPass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
     deblurDoGXPass.end();
 
     // configure deblurDoGY pass
@@ -409,7 +424,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     const deblurDoGYPass = commandEncoder.beginComputePass();
     deblurDoGYPass.setPipeline(deblurDoGYPipeline);
     deblurDoGYPass.setBindGroup(0, deblurDoGYBindGroup);
-    deblurDoGYPass.dispatchWorkgroups(Math.ceil(video.videoWidth / 8), Math.ceil(video.videoHeight / 8));
+    deblurDoGYPass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
     deblurDoGYPass.end();
 
     // configure deblurDoGApply pass
@@ -426,11 +441,17 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         },
         {
           binding: 2,
-          resource: videoFrameTexture.createView(),
+          resource: imageTexture.createView(),
         },
         {
           binding: 3,
           resource: deblurDoGApplyTexture.createView(),
+        },
+        {
+          binding: 4,
+          resource: {
+            buffer: strengthBuffer,
+          }
         }
       ]
     });
@@ -439,7 +460,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     const deblurDoGApplyPass = commandEncoder.beginComputePass();
     deblurDoGApplyPass.setPipeline(deblurDoGApplyPipeline);
     deblurDoGApplyPass.setBindGroup(0, deblurDoGApplyBindGroup);
-    deblurDoGApplyPass.dispatchWorkgroups(Math.ceil(video.videoWidth / 8), Math.ceil(video.videoHeight / 8));
+    deblurDoGApplyPass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
     deblurDoGApplyPass.end();
 
     // configure render pipeline
@@ -448,16 +469,10 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
       entries: [
         {
           binding: 0,
-          resource: {
-            buffer: strengthBuffer,
-          },
-        },
-        {
-          binding: 1,
           resource: sampler,
         },
         {
-          binding: 2,
+          binding: 1,
           resource: deblurDoGApplyTexture.createView(),
         },
       ],

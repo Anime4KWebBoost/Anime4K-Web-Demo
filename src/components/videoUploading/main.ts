@@ -4,6 +4,7 @@ import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgs
 import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
 
 import DeblurPipeline from './deblur';
+import UpscaleCNNPipeline from './upscaleCNN';
 
 const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   // Set video element
@@ -57,7 +58,8 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     );
   }
 
-  const deblurPipeline = new DeblurPipeline(device, videoFrameTexture);
+  // const deblurPipeline = new DeblurPipeline(device, videoFrameTexture);
+  const upscalePipeline = new UpscaleCNNPipeline(device, videoFrameTexture);
 
   // configure final rendering pipeline
   const renderBindGroupLayout = device.createBindGroupLayout({
@@ -130,7 +132,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
 
   gui.add(settings, 'controlValue', 0, 10, 0.1).name('Control Value').onChange((value) => {
     // updateStrength(value);
-    deblurPipeline.updateStrength(value);
+    // deblurPipeline.updateStrength(value);
   });
 
 
@@ -141,7 +143,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     // initialize command recorder
     const commandEncoder = device.createCommandEncoder();
 
-    deblurPipeline.generatePass(commandEncoder);
+    upscalePipeline.generatePass(commandEncoder);
 
     // configure render pipeline
     const renderBindGroup = device.createBindGroup({
@@ -153,7 +155,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         },
         {
           binding: 1,
-          resource: deblurPipeline.getOutputTexture().createView(),
+          resource: upscalePipeline.getOutputTexture().createView(),
         },
       ],
     });

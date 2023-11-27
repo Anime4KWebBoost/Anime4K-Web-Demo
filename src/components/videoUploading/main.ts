@@ -2,6 +2,10 @@ import { makeSample, SampleInit } from '../../components/SampleLayout';
 
 import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgsl';
 import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
+import luminationWGSL from '../../shaders/lumination.wgsl';
+import deblurDoGXWGSL from '../../shaders/deblurDoGX.wgsl';
+import deblurDoGYWGSL from '../../shaders/deblurDoGY.wgsl';
+import deblurDoGApplyWGSL from '../../shaders/deblurDoGApply.wgsl';
 
 const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   // Set video element
@@ -12,6 +16,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   video.src = videoURL;
   await video.play();
 
+  // maintain canvas aspect ratio
   const aspectRatio = video.videoHeight / video.videoWidth;
   canvas.style.height = `calc(80vw * ${aspectRatio})`;
 
@@ -20,6 +25,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
 
   if (!pageState.active) return;
 
+  // connect canvas to webGPU
   const context = canvas.getContext('webgpu') as GPUCanvasContext;
   const devicePixelRatio = window.devicePixelRatio;
   canvas.width = canvas.clientWidth * devicePixelRatio;
@@ -32,30 +38,247 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     alphaMode: 'premultiplied',
   });
 
-  const bindGroupLayout = device.createBindGroupLayout({
-    label: "Bind Group Layout",
-    entries: [{
-      binding: 1,
-      visibility: GPUShaderStage.FRAGMENT,
-      sampler: {}
-    }, {
-      binding: 2,
-      visibility: GPUShaderStage.FRAGMENT,
-      texture: {}
-    }, {
-      binding: 3,
-      visibility: GPUShaderStage.FRAGMENT,
-      buffer: { type: "uniform" }
-    }]
+  // configure lumination pipeline
+  const luminationBindGroupLayout = device.createBindGroupLayout({
+    label: "lumination Bind Group Layout",
+    entries: [
+      {
+        binding: 0, // input frame as texture
+        visibility: GPUShaderStage.COMPUTE,
+        texture: {}
+      },
+      {
+        binding: 1, // output texture
+        visibility: GPUShaderStage.COMPUTE,
+        storageTexture: {
+          access: "write-only",
+          format: "rgba16float",
+        },
+      }
+    ]
   });
 
-  const pipelineLayout = device.createPipelineLayout({
-    label: "Cell Pipeline Layout",
-    bindGroupLayouts: [ bindGroupLayout ],
+  const luminationModule = device.createShaderModule({
+    label: 'lumination shader',
+    code: luminationWGSL,
   });
 
-  const pipeline = device.createRenderPipeline({
-    layout: pipelineLayout,
+  const luminationPipelineLayout = device.createPipelineLayout({
+    label: "lumination pipeline layout",
+    bindGroupLayouts: [ luminationBindGroupLayout ],
+  });
+
+  const luminationPipeline = device.createComputePipeline({
+    label: 'lumination pipeline',
+    layout: luminationPipelineLayout,
+    compute: {
+      module: luminationModule,
+      entryPoint: 'computeMain',
+    }
+  });
+
+  // preparing textures for compute pipeline
+  // bind 0: input frame texture
+  const videoFrameTexture = device.createTexture({
+    size: [video.videoWidth, video.videoHeight, 1],
+    format: 'rgba16float',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+  });
+  // update function to be called within frame loop
+  function updateVideoFrameTexture() {
+    // Copy the current video frame to the texture
+    device.queue.copyExternalImageToTexture(
+      { source: video },
+      { texture: videoFrameTexture },
+      [ video.videoWidth, video.videoHeight ]
+    );
+  }
+
+  // bind 1: output texture
+  const luminationTexture = device.createTexture({
+    size: [video.videoWidth, video.videoHeight, 1],
+    format: 'rgba16float',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+  });
+
+  // configure deblurDoGX pipeline
+  const deblurDoGXBindGroupLayout = device.createBindGroupLayout({
+    label: "deblurDoGX Bind Group Layout",
+    entries: [
+      {
+        binding: 0, // input frame as texture
+        visibility: GPUShaderStage.COMPUTE,
+        texture: {}
+      },
+      {
+        binding: 1, // output texture
+        visibility: GPUShaderStage.COMPUTE,
+        storageTexture: {
+          access: "write-only",
+          format: "rgba16float",
+        },
+      }
+    ]
+  });
+
+  const deblurDoGXModule = device.createShaderModule({
+    label: 'deblurDoGX shader',
+    code: deblurDoGXWGSL,
+  });
+
+  const deblurDoGXPipelineLayout = device.createPipelineLayout({
+    label: "deblurDoGX pipeline layout",
+    bindGroupLayouts: [ deblurDoGXBindGroupLayout ],
+  });
+
+  const deblurDoGXPipeline = device.createComputePipeline({
+    label: 'deblurDoGX pipeline',
+    layout: deblurDoGXPipelineLayout,
+    compute: {
+      module: deblurDoGXModule,
+      entryPoint: 'computeMain',
+    }
+  });
+
+  // bind 1: output texture
+  const deblurDoGXTexture = device.createTexture({
+    size: [video.videoWidth, video.videoHeight, 1],
+    format: 'rgba16float',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+  });
+
+  // configure deblurDoGY pipeline
+  const deblurDoGYBindGroupLayout = device.createBindGroupLayout({
+    label: "deblurDoGY Bind Group Layout",
+    entries: [
+      {
+        binding: 0, // input frame as texture
+        visibility: GPUShaderStage.COMPUTE,
+        texture: {}
+      },
+      {
+        binding: 1, // output texture
+        visibility: GPUShaderStage.COMPUTE,
+        storageTexture: {
+          access: "write-only",
+          format: "rgba16float",
+        },
+      }
+    ]
+  });
+
+  const deblurDoGYModule = device.createShaderModule({
+    label: 'deblurDoGY shader',
+    code: deblurDoGYWGSL,
+  });
+
+  const deblurDoGYPipelineLayout = device.createPipelineLayout({
+    label: "deblurDoGY pipeline layout",
+    bindGroupLayouts: [ deblurDoGYBindGroupLayout ],
+  });
+
+  const deblurDoGYPipeline = device.createComputePipeline({
+    label: 'deblurDoGY pipeline',
+    layout: deblurDoGYPipelineLayout,
+    compute: {
+      module: deblurDoGYModule,
+      entryPoint: 'computeMain',
+    }
+  });
+
+  // bind 1: output texture
+  const deblurDoGYTexture = device.createTexture({
+    size: [video.videoWidth, video.videoHeight, 1],
+    format: 'rgba16float',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+  });
+
+  // configure deblurDoGApply pipeline
+  const deblurDoGApplyBindGroupLayout = device.createBindGroupLayout({
+    label: "deblurDoGApply Bind Group Layout",
+    entries: [
+      {
+        binding: 0, // input frame as texture
+        visibility: GPUShaderStage.COMPUTE,
+        texture: {}
+      },
+      {
+        binding: 1,
+        visibility: GPUShaderStage.COMPUTE,
+        texture: {}
+      },
+      {
+        binding: 2,
+        visibility: GPUShaderStage.COMPUTE,
+        texture: {}
+      },
+      {
+        binding: 3, // output texture
+        visibility: GPUShaderStage.COMPUTE,
+        storageTexture: {
+          access: "write-only",
+          format: "rgba16float",
+        },
+      }
+    ]
+  });
+
+  const deblurDoGApplyModule = device.createShaderModule({
+    label: 'deblurDoGApply shader',
+    code: deblurDoGApplyWGSL,
+  });
+
+  const deblurDoGApplyPipelineLayout = device.createPipelineLayout({
+    label: "deblurDoGApply pipeline layout",
+    bindGroupLayouts: [ deblurDoGApplyBindGroupLayout ],
+  });
+
+  const deblurDoGApplyPipeline = device.createComputePipeline({
+    label: 'deblurDoGApply pipeline',
+    layout: deblurDoGApplyPipelineLayout,
+    compute: {
+      module: deblurDoGApplyModule,
+      entryPoint: 'computeMain',
+    }
+  });
+
+  // bind 1: output texture
+  const deblurDoGApplyTexture = device.createTexture({
+    size: [video.videoWidth, video.videoHeight, 1],
+    format: 'rgba16float',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+  });
+
+
+  // configure final rendering pipeline
+  const renderBindGroupLayout = device.createBindGroupLayout({
+    label: "Render Bind Group Layout",
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.FRAGMENT,
+        buffer: { type: "uniform" }
+      },
+      {
+        binding: 1,
+        visibility: GPUShaderStage.FRAGMENT,
+        sampler: {}
+      },
+      {
+        binding: 2,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: {}
+      }
+    ]
+  });
+
+  const renderPipelineLayout = device.createPipelineLayout({
+    label: "Render Pipeline Layout",
+    bindGroupLayouts: [ renderBindGroupLayout ],
+  });
+
+  const renderPipeline = device.createRenderPipeline({
+    layout: renderPipelineLayout,
     vertex: {
       module: device.createShaderModule({
         code: fullscreenTexturedQuadWGSL,
@@ -78,30 +301,28 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     },
   });
 
-  //tes
-  const imgBitmap = await createImageBitmap(await (await fetch('../assets/video/test.jpg')).blob());
-  const texture = device.createTexture({
-    size: [imgBitmap.width, imgBitmap.height, 1],
-    format: 'rgba8unorm',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+  // prepare resources for render pipeline
+  // bind 0: strength uniform
+  const strengthBuffer = device.createBuffer({
+    size: 4,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
-  device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, [imgBitmap.width, imgBitmap.height]);
+  function updateStrength(strength: number) {
+    device.queue.writeBuffer(strengthBuffer, 0, new Float32Array([strength]));
+  }
 
+  // bind 1: sampler
   const sampler = device.createSampler({
     magFilter: 'linear',
     minFilter: 'linear',
   });
 
+  // GUI options
   const settings = {
     requestFrame: 'requestAnimationFrame',
     shaders: 'shader 1',
     controlValue: 2,
   };
-
-  const strengthBuffer = device.createBuffer({
-    size: 4,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
 
   gui.add(settings, 'requestFrame', [
     'requestAnimationFrame',
@@ -112,69 +333,149 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     'shader 1',
     'shader 2'
   ]);
+
   gui.add(settings, 'controlValue', 0, 10, 1).name('Control Value').onChange((value) => {
-    device.queue.writeBuffer(strengthBuffer, 0, new Float32Array([value]));
+    updateStrength(value);
   });
 
-  const videoFrameTexture = device.createTexture({
-    size: [video.videoWidth, video.videoHeight, 1],
-    format: 'rgba8unorm',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-});
-
-  
-  function updateVideoFrameTexture() {
-    // Copy the current video frame to the texture
-    device.queue.copyExternalImageToTexture(
-      { source: video },
-      { texture: videoFrameTexture },
-      [video.videoWidth, video.videoHeight]
-    );
-  }
 
   function frame() {
-    // Sample is no longer the active page.
-    if (!pageState.active) return;
+    // fetch a new frame from video element into texture
     updateVideoFrameTexture();
-    const uniformBindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
+
+    // initialize command recorder
+    const commandEncoder = device.createCommandEncoder();
+
+    // configure lumination pass
+    const luminationBindGroup = device.createBindGroup({
+      layout: luminationBindGroupLayout,
       entries: [
-        
+        {
+          binding: 0,
+          resource: videoFrameTexture.createView(),
+        },
+        {
+          binding: 1,
+          resource: luminationTexture.createView(),
+        }
+      ]
+    });
+
+    // dispatch lumination pipeline
+    const luminationPass = commandEncoder.beginComputePass();
+    luminationPass.setPipeline(luminationPipeline);
+    luminationPass.setBindGroup(0, luminationBindGroup);
+    luminationPass.dispatchWorkgroups(Math.ceil(video.videoWidth / 8), Math.ceil(video.videoHeight / 8));
+    luminationPass.end();
+
+    // configure deblurDoGX pass
+    const deblurDoGXBindGroup = device.createBindGroup({
+      layout: deblurDoGXBindGroupLayout,
+      entries: [
+        {
+          binding: 0,
+          resource: luminationTexture.createView(),
+        },
+        {
+          binding: 1,
+          resource: deblurDoGXTexture.createView(),
+        }
+      ]
+    });
+
+    // dispatch deblurDoGX pipeline
+    const deblurDoGXPass = commandEncoder.beginComputePass();
+    deblurDoGXPass.setPipeline(deblurDoGXPipeline);
+    deblurDoGXPass.setBindGroup(0, deblurDoGXBindGroup);
+    deblurDoGXPass.dispatchWorkgroups(Math.ceil(video.videoWidth / 8), Math.ceil(video.videoHeight / 8));
+    deblurDoGXPass.end();
+
+    // configure deblurDoGY pass
+    const deblurDoGYBindGroup = device.createBindGroup({
+      layout: deblurDoGYBindGroupLayout,
+      entries: [
+        {
+          binding: 0,
+          resource: deblurDoGXTexture.createView(),
+        },
+        {
+          binding: 1,
+          resource: deblurDoGYTexture.createView(),
+        }
+      ]
+    });
+
+    // dispatch deblurDoGY pipeline
+    const deblurDoGYPass = commandEncoder.beginComputePass();
+    deblurDoGYPass.setPipeline(deblurDoGYPipeline);
+    deblurDoGYPass.setBindGroup(0, deblurDoGYBindGroup);
+    deblurDoGYPass.dispatchWorkgroups(Math.ceil(video.videoWidth / 8), Math.ceil(video.videoHeight / 8));
+    deblurDoGYPass.end();
+
+    // configure deblurDoGApply pass
+    const deblurDoGApplyBindGroup = device.createBindGroup({
+      layout: deblurDoGApplyBindGroupLayout,
+      entries: [
+        {
+          binding: 0,
+          resource: deblurDoGYTexture.createView(),
+        },
+        {
+          binding: 1,
+          resource: luminationTexture.createView(),
+        },
+        {
+          binding: 2,
+          resource: videoFrameTexture.createView(),
+        },
+        {
+          binding: 3,
+          resource: deblurDoGApplyTexture.createView(),
+        }
+      ]
+    });
+
+    // dispatch deblurDoGApply pipeline
+    const deblurDoGApplyPass = commandEncoder.beginComputePass();
+    deblurDoGApplyPass.setPipeline(deblurDoGApplyPipeline);
+    deblurDoGApplyPass.setBindGroup(0, deblurDoGApplyBindGroup);
+    deblurDoGApplyPass.dispatchWorkgroups(Math.ceil(video.videoWidth / 8), Math.ceil(video.videoHeight / 8));
+    deblurDoGApplyPass.end();
+
+    // configure render pipeline
+    const renderBindGroup = device.createBindGroup({
+      layout: renderBindGroupLayout,
+      entries: [
+        {
+          binding: 0,
+          resource: {
+            buffer: strengthBuffer,
+          },
+        },
         {
           binding: 1,
           resource: sampler,
         },
         {
           binding: 2,
-          //resource: videoFrameTexture.createView(),
-          resource: texture.createView(),
-        },
-        {
-          binding: 3, // For _Strength
-          resource: {
-            buffer: strengthBuffer,
-          },
+          resource: deblurDoGApplyTexture.createView(),
         },
       ],
     });
 
-    const commandEncoder = device.createCommandEncoder();
-    const textureView = context.getCurrentTexture().createView();
-
-    const renderPassDescriptor: GPURenderPassDescriptor = {
+    // dispatch render pipeline
+    const passEncoder = commandEncoder.beginRenderPass({
       colorAttachments: [
         {
-          view: textureView,
+          view: context.getCurrentTexture().createView(),
           clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
           loadOp: 'clear',
           storeOp: 'store',
         },
       ],
-    };
-
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    passEncoder.setPipeline(pipeline);
-    passEncoder.setBindGroup(0, uniformBindGroup);
+    });
+    passEncoder.setPipeline(renderPipeline);
+    passEncoder.setBindGroup(0, renderBindGroup);
     passEncoder.draw(6);
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);

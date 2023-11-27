@@ -1,6 +1,6 @@
+@group(0) @binding(0) var<uniform> strength: f32;
 @group(0) @binding(1) var mySampler: sampler;
 @group(0) @binding(2) var myTexture: texture_2d<f32>;
-@group(0) @binding(3) var<uniform> strength: f32;
 
 // Function to calculate luminance
 fn get_luma(rgba: vec4<f32>) -> f32 {
@@ -55,26 +55,27 @@ fn main(@location(0) fragUV: vec2<f32>) -> @location(0) vec4<f32> {
     let NOISE_THRESHOLD: f32 = 0.001;
 
     let color: vec4<f32> = textureSample(myTexture, mySampler, fragUV);
-    let luma: f32 = get_luma(color);
-    // Use either minmax3_x or minmax3_y depending on the specific stage in the shader pipeline
-    let minMax: vec2<f32> = minmax3_x(fragUV, vec2<f32>(1.0, 0.0), myTexture); // or minmax3_y
+    return color;
+    // let luma: f32 = get_luma(color);
+    // // Use either minmax3_x or minmax3_y depending on the specific stage in the shader pipeline
+    // let minMax: vec2<f32> = minmax3_x(fragUV, vec2<f32>(1.0, 0.0), myTexture); // or minmax3_y
 
-    var c: f32 = (luma - lumGaussian7(fragUV, vec2<f32>(1.0, 0.0), myTexture)) * STRENGTH;
-    let t_range: f32 = BLUR_THRESHOLD - NOISE_THRESHOLD;
-    var c_t: f32 = abs(c);
-    if (c_t > NOISE_THRESHOLD) {
-        c_t = (c_t - NOISE_THRESHOLD) / t_range;
-        c_t = pow(c_t, BLUR_CURVE);
-        c_t = c_t * t_range + NOISE_THRESHOLD;
-        c_t = c_t * sign(c);
-    } else {
-        c_t = c;
-    }
+    // var c: f32 = (luma - lumGaussian7(fragUV, vec2<f32>(1.0, 0.0), myTexture)) * STRENGTH;
+    // let t_range: f32 = BLUR_THRESHOLD - NOISE_THRESHOLD;
+    // var c_t: f32 = abs(c);
+    // if (c_t > NOISE_THRESHOLD) {
+    //     c_t = (c_t - NOISE_THRESHOLD) / t_range;
+    //     c_t = pow(c_t, BLUR_CURVE);
+    //     c_t = c_t * t_range + NOISE_THRESHOLD;
+    //     c_t = c_t * sign(c);
+    // } else {
+    //     c_t = c;
+    // }
 
-    let cc: f32 = clamp(c_t + luma, minMax.x, minMax.y) - luma;
-    let resultColor: vec4<f32> = color + vec4<f32>(cc, cc, cc, 0.0);
+    // let cc: f32 = clamp(c_t + luma, minMax.x, minMax.y) - luma;
+    // let resultColor: vec4<f32> = color + vec4<f32>(cc, cc, cc, 0.0);
 
-    return resultColor;
+    // return resultColor;
 }
 
 //fn main(@location(0) fragUV : vec2<f32>) -> @location(0) vec4<f32> {

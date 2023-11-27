@@ -1,5 +1,3 @@
-import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgsl';
-import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
 import luminationWGSL from '../../shaders/lumination.wgsl';
 import deblurDoGXWGSL from '../../shaders/deblurDoGX.wgsl';
 import deblurDoGYWGSL from '../../shaders/deblurDoGY.wgsl';

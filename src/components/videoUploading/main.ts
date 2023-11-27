@@ -99,15 +99,16 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     );
   }
 
-  const imgBitmap = await createImageBitmap(await (await fetch('../assets/video/test1.png')).blob());
-  const imageTexture = device.createTexture({
-    size: [imgBitmap.width, imgBitmap.height, 1],
-    format: 'rgba8unorm',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
-  });
-  device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture: imageTexture }, [imgBitmap.width, imgBitmap.height]);
-  WIDTH = imgBitmap.width;
-  HEIGHT = imgBitmap.height;
+  // image texture for static testing
+  // const imgBitmap = await createImageBitmap(await (await fetch('../assets/video/test1.png')).blob());
+  // const imageTexture = device.createTexture({
+  //   size: [imgBitmap.width, imgBitmap.height, 1],
+  //   format: 'rgba8unorm',
+  //   usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+  // });
+  // device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture: imageTexture }, [imgBitmap.width, imgBitmap.height]);
+  // WIDTH = imgBitmap.width;
+  // HEIGHT = imgBitmap.height;
 
   // bind 1: output texture
   const luminationTexture = device.createTexture({
@@ -367,7 +368,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
       entries: [
         {
           binding: 0,
-          resource: imageTexture.createView(),
+          resource: videoFrameTexture.createView(),
         },
         {
           binding: 1,
@@ -441,7 +442,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         },
         {
           binding: 2,
-          resource: imageTexture.createView(),
+          resource: videoFrameTexture.createView(),
         },
         {
           binding: 3,

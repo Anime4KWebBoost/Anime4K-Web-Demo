@@ -1,23 +1,27 @@
-import luminationWGSL from '../../shaders/lumination.wgsl';
-import deblurDoGXWGSL from '../../shaders/deblurDoGX.wgsl';
-import deblurDoGYWGSL from '../../shaders/deblurDoGY.wgsl';
-import deblurDoGApplyWGSL from '../../shaders/deblurDoGApply.wgsl';
+import luminationWGSL from '../shaders/lumination.wgsl';
+import deblurDoGXWGSL from '../shaders/deblurDoGX.wgsl';
+import deblurDoGYWGSL from '../shaders/deblurDoGY.wgsl';
+import deblurDoGApplyWGSL from '../shaders/deblurDoGApply.wgsl';
+import { Anime4KPipeline } from './Anime4KPipeline';
 
-class DeblurPipeline {
+export default class DeblurPipeline implements Anime4KPipeline {
   textures: GPUTexture[];
   modules: GPUShaderModule[];
   bindGroupLayouts: GPUBindGroupLayout[];
+  bindGroups: GPUBindGroup[];
   pipelineLayouts: GPUPipelineLayout[];
   pipelines: GPUComputePipeline[];
   strengthBuffer: GPUBuffer;
   inputTexWidth: number;
   inputTexHeight: number;
+  inputTexture: GPUTexture;
   device: GPUDevice;
 
   constructor(device: GPUDevice, inputTexture: GPUTexture) {
     this.device = device;
     this.inputTexWidth = inputTexture.width;
     this.inputTexHeight = inputTexture.height;
+    this.inputTexture = inputTexture;
 
     // configure lumination pipeline
     const luminationBindGroupLayout = device.createBindGroupLayout({
@@ -220,7 +224,6 @@ class DeblurPipeline {
 
     // gather all necessary information
     this.textures = [
-      inputTexture,
       luminationTexture,
       deblurDoGXTexture,
       deblurDoGYTexture,
@@ -260,38 +263,21 @@ class DeblurPipeline {
       size: 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-  }
 
-  getOutputTexture() : GPUTexture {
-    return this.textures[this.textures.length - 1];
-  }
-
-  updateStrength(strength: number) {
-    this.device.queue.writeBuffer(this.strengthBuffer, 0, new Float32Array([strength]));
-  }
-
-  generatePass(encoder: GPUCommandEncoder) {
     // configure lumination pass
     const luminationBindGroup = this.device.createBindGroup({
       layout: this.bindGroupLayouts[0],
       entries: [
         {
           binding: 0,
-          resource: this.textures[0].createView(),
+          resource: this.inputTexture.createView(),
         },
         {
           binding: 1,
-          resource: this.textures[1].createView(),
+          resource: this.textures[0].createView(),
         }
       ]
     });
-
-    // dispatch lumination pipeline
-    const luminationPass = encoder.beginComputePass();
-    luminationPass.setPipeline(this.pipelines[0]);
-    luminationPass.setBindGroup(0, luminationBindGroup);
-    luminationPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
-    luminationPass.end();
 
     // configure deblurDoGX pass
     const deblurDoGXBindGroup = this.device.createBindGroup({
@@ -299,21 +285,14 @@ class DeblurPipeline {
       entries: [
         {
           binding: 0,
-          resource: this.textures[1].createView(),
+          resource: this.textures[0].createView(),
         },
         {
           binding: 1,
-          resource: this.textures[2].createView(),
+          resource: this.textures[1].createView(),
         }
       ]
     });
-
-    // dispatch deblurDoGX pipeline
-    const deblurDoGXPass = encoder.beginComputePass();
-    deblurDoGXPass.setPipeline(this.pipelines[1]);
-    deblurDoGXPass.setBindGroup(0, deblurDoGXBindGroup);
-    deblurDoGXPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
-    deblurDoGXPass.end();
 
     // configure deblurDoGY pass
     const deblurDoGYBindGroup = this.device.createBindGroup({
@@ -321,21 +300,14 @@ class DeblurPipeline {
       entries: [
         {
           binding: 0,
-          resource: this.textures[2].createView(),
+          resource: this.textures[1].createView(),
         },
         {
           binding: 1,
-          resource: this.textures[3].createView(),
+          resource: this.textures[2].createView(),
         }
       ]
     });
-
-    // dispatch deblurDoGY pipeline
-    const deblurDoGYPass = encoder.beginComputePass();
-    deblurDoGYPass.setPipeline(this.pipelines[2]);
-    deblurDoGYPass.setBindGroup(0, deblurDoGYBindGroup);
-    deblurDoGYPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
-    deblurDoGYPass.end();
 
     // configure deblurDoGApply pass
     const deblurDoGApplyBindGroup = this.device.createBindGroup({
@@ -343,19 +315,19 @@ class DeblurPipeline {
       entries: [
         {
           binding: 0,
-          resource: this.textures[3].createView(),
+          resource: this.textures[2].createView(),
         },
         {
           binding: 1,
-          resource: this.textures[1].createView(),
-        },
-        {
-          binding: 2,
           resource: this.textures[0].createView(),
         },
         {
+          binding: 2,
+          resource: this.inputTexture.createView(),
+        },
+        {
           binding: 3,
-          resource: this.textures[4].createView(),
+          resource: this.textures[3].createView(),
         },
         {
           binding: 4,
@@ -366,13 +338,58 @@ class DeblurPipeline {
       ]
     });
 
+    this.bindGroups = [
+      luminationBindGroup,
+      deblurDoGXBindGroup,
+      deblurDoGYBindGroup,
+      deblurDoGApplyBindGroup,
+    ]
+  }
+
+  getOutputTexture() : GPUTexture {
+    return this.textures[this.textures.length - 1];
+  }
+
+  updateParam(param: string, value: any): void {
+    if (param !== 'strength' ) {
+      throw new Error(`No param name as ${param}`);
+    }
+    if (typeof value !== 'number') {
+      throw new Error("strength must be a number");
+    }
+    if (value < 0) {
+      throw new Error(`negative strength (${value}) is not allowed`);
+    }
+    this.device.queue.writeBuffer(this.strengthBuffer, 0, new Float32Array([value]));
+  }
+
+  pass(encoder: GPUCommandEncoder) {
+    // dispatch lumination pipeline
+    const luminationPass = encoder.beginComputePass();
+    luminationPass.setPipeline(this.pipelines[0]);
+    luminationPass.setBindGroup(0, this.bindGroups[0]);
+    luminationPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
+    luminationPass.end();
+
+    // dispatch deblurDoGX pipeline
+    const deblurDoGXPass = encoder.beginComputePass();
+    deblurDoGXPass.setPipeline(this.pipelines[1]);
+    deblurDoGXPass.setBindGroup(0, this.bindGroups[1]);
+    deblurDoGXPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
+    deblurDoGXPass.end();
+
+    // dispatch deblurDoGY pipeline
+    const deblurDoGYPass = encoder.beginComputePass();
+    deblurDoGYPass.setPipeline(this.pipelines[2]);
+    deblurDoGYPass.setBindGroup(0, this.bindGroups[2]);
+    deblurDoGYPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
+    deblurDoGYPass.end();
+
     // dispatch deblurDoGApply pipeline
     const deblurDoGApplyPass = encoder.beginComputePass();
     deblurDoGApplyPass.setPipeline(this.pipelines[3]);
-    deblurDoGApplyPass.setBindGroup(0, deblurDoGApplyBindGroup);
+    deblurDoGApplyPass.setBindGroup(0, this.bindGroups[3]);
     deblurDoGApplyPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
     deblurDoGApplyPass.end();
   }
 };
-
-export default DeblurPipeline;

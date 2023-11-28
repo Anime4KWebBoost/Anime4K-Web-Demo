@@ -3,8 +3,8 @@ import { makeSample, SampleInit } from '../../components/SampleLayout';
 import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgsl';
 import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
 
-import DeblurPipeline from './deblur';
-import UpscaleCNNPipeline from './upscaleCNN';
+import DeblurPipeline from '../../pipelines/DeblurDoGPipeline';
+import UpscaleCNNPipeline from '../../pipelines/UpscaleCNNPipeline';
 
 const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   // Set video element
@@ -113,6 +113,21 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     minFilter: 'linear',
   });
 
+  // configure render pipeline
+  const renderBindGroup = device.createBindGroup({
+    layout: renderBindGroupLayout,
+    entries: [
+      {
+        binding: 0,
+        resource: sampler,
+      },
+      {
+        binding: 1,
+        resource: upscalePipeline.getOutputTexture().createView(),
+      },
+    ],
+  });
+
   // GUI options
   const settings = {
     requestFrame: 'requestAnimationFrame',
@@ -131,10 +146,8 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   ]);
 
   gui.add(settings, 'controlValue', 0, 10, 0.1).name('Control Value').onChange((value) => {
-    // updateStrength(value);
-    // deblurPipeline.updateStrength(value);
+    // deblurPipeline.updateParam("strength", value);
   });
-
 
   function frame() {
     // fetch a new frame from video element into texture
@@ -143,22 +156,8 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     // initialize command recorder
     const commandEncoder = device.createCommandEncoder();
 
-    upscalePipeline.generatePass(commandEncoder);
-
-    // configure render pipeline
-    const renderBindGroup = device.createBindGroup({
-      layout: renderBindGroupLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: sampler,
-        },
-        {
-          binding: 1,
-          resource: upscalePipeline.getOutputTexture().createView(),
-        },
-      ],
-    });
+    // encode compute pipeline commands
+    upscalePipeline.pass(commandEncoder);
 
     // dispatch render pipeline
     const passEncoder = commandEncoder.beginRenderPass({

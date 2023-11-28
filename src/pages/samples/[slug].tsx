@@ -1,5 +1,5 @@
 import dynamic from 'next/dynamic';
-// import { GetStaticPaths, GetStaticProps } from 'next';
+import { GetStaticPaths, GetStaticProps } from 'next';
 
 type PathParams = {
   slug: string;
@@ -22,27 +22,27 @@ function Page({ slug }: Props): JSX.Element {
   return <PageComponent />;
 }
 
-// const getStaticPaths: GetStaticPaths<PathParams> = async () => {
-//   return {
-//     paths: Object.keys(pages).map((p) => {
-//       return { params: { slug: p } };
-//     }),
-//     fallback: false,
-//   };
-// };
+export const getStaticPaths: GetStaticPaths<PathParams> = async () => {
+  return {
+    paths: Object.keys(pages).map((p) => {
+      return { params: { slug: p } };
+    }),
+    fallback: false,
+  };
+};
 
-// const getStaticProps: GetStaticProps<Props, PathParams> = async ({
-//   params,
-// }) => {
-//   if (!params) {
-//     return { notFound: true };
-//   }
+export const getStaticProps: GetStaticProps<Props, PathParams> = async ({
+  params,
+}) => {
+  if (!params) {
+    return { notFound: true };
+  }
 
-//   return {
-//     props: {
-//       slug: params.slug,
-//     },
-//   };
-// };
+  return {
+    props: {
+      slug: params.slug,
+    },
+  };
+};
 
 export default Page;

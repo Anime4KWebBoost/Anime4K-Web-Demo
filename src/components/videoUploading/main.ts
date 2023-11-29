@@ -18,6 +18,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   // constants
   let WIDTH = video.videoWidth;
   let HEIGHT = video.videoHeight;
+  console.log(WIDTH, HEIGHT);
 
   // maintain canvas aspect ratio
   const aspectRatio = HEIGHT / WIDTH;

@@ -10,24 +10,23 @@ fn colorAt(texture: texture_2d<f32>, x: u32, y: u32) -> vec4<f32> {
 @compute
 @workgroup_size(8, 8)
 fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
-  var tex_7_size: vec2<f32> = vec2<f32>(640, 360);
-  var tex_8_size: vec2<f32> = vec2<f32>(640, 360);
-  var tex_9_size: vec2<f32> = vec2<f32>(640, 360);
-
+  var tex_7_size: vec2u = textureDimensions(tex_7);
+  var tex_8_size: vec2u = textureDimensions(tex_8);
+  var tex_9_size: vec2u = textureDimensions(tex_9);
     let dim_out: vec2u = textureDimensions(tex_out);
     if (pixel.x >= dim_out.x || pixel.y >= dim_out.y) {
         return;
     }
 
-    let f0 = fract(vec2<f32>(pixel.xy) * tex_7_size);
+    let f0 = fract(vec2<f32>(pixel.xy) * (f32(tex_7_size.x) * f32(tex_7_size.y)));
     let i0 = vec2<u32>(u32(f0.x * 2.0), u32(f0.y * 2.0));
     let c0 = colorAt(tex_7, i0.x, i0.y).x;
 
-    let f1 = fract(vec2<f32>(pixel.xy) * tex_8_size);
+    let f1 = fract(vec2<f32>(pixel.xy) * (f32(tex_8_size.x) * f32(tex_8_size.y)));
     let i1 = vec2<u32>(u32(f1.x * 2.0), u32(f1.y * 2.0));
     let c1 = colorAt(tex_8, i1.x, i1.y).x;
 
-    let f2 = fract(vec2<f32>(pixel.xy) * tex_9_size);
+    let f2 = fract(vec2<f32>(pixel.xy) * (f32(tex_9_size.x) * f32(tex_9_size.y)));
     let i2 = vec2<u32>(u32(f2.x * 2.0), u32(f2.y * 2.0));
     let c2 = colorAt(tex_9, i2.x, i2.y).x;
 

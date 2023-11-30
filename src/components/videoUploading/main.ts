@@ -92,6 +92,11 @@ function setupGUI(gui, settings, CustomPipline,video) {
       isUserInteracting = false;
     });
 
+    gui.add(settings, 'comparisonEnabled').name('Toggle Comparison').onChange((value) => {
+      const bufferData = new Uint32Array([value ? 1 : 0]);
+      CustomPipline.updateCompare(value);
+    });
+
 }
 
 async function configureWebGPU(canvas) {
@@ -147,7 +152,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     requestFrame: 'requestAnimationFrame',
     Effects: 'Upscale',
     controlValue: 2,
-    
+    comparisonEnabled: false,
   };
   video.addEventListener('loadedmetadata', () => {
     setupGUI(gui, settings, CustomPipline, video);

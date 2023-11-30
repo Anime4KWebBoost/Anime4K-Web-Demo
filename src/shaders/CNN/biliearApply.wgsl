@@ -11,6 +11,7 @@ fn getUVCoordinates(i: u32, j: u32, m: u32, n: u32) -> vec2<f32> {
 @compute
 @workgroup_size(8, 8)
 fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
+  var comparisonEnabled: u32 = 0u; //1u = true
   let dim_out: vec2u = textureDimensions(tex_out);
   if (pixel.x >= dim_out.x || pixel.y >= dim_out.y) {
     return;
@@ -24,5 +25,18 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
   let color_10: vec4<f32> = textureLoad(tex_10, coord10, 0);
 
   let combined_color: vec4<f32> = color_original + color_10;
+
+  // comparison
+  if (comparisonEnabled == 1u) {
+    if (pixel.x < dim_out.x / 2 - 2) {
+    textureStore(tex_out, vec2u(pixel.x, pixel.y), textureLoad(tex_original, vec2u(pixel.x, pixel.y), 0));
+    return;
+    }
+    if (pixel.x <= dim_out.x / 2 + 2) {
+      textureStore(tex_out, vec2u(pixel.x, pixel.y), vec4(1.0, 0, 0, 1));
+      return;
+    }
+  }
+  
   textureStore(tex_out, vec2u(pixel.x, pixel.y), combined_color);
 }

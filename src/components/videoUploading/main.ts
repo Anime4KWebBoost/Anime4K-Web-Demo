@@ -59,7 +59,7 @@ function setupGUI(gui, settings, CustomPipline,video) {
         console.log(`Video paused`);
       }
     }
-  }, 'toggleVideo').name('Pause Video');
+  }, 'toggleVideo').name('Pause/Resume');
 
 
   //Adjust video progress
@@ -92,7 +92,7 @@ function setupGUI(gui, settings, CustomPipline,video) {
       isUserInteracting = false;
     });
 
-    gui.add(settings, 'comparisonEnabled').name('Toggle Comparison').onChange((value) => {
+    gui.add(settings, 'comparisonEnabled').name('Comparison').onChange((value) => {
       const bufferData = new Uint32Array([value ? 1 : 0]);
       CustomPipline.updateCompare(value);
     });

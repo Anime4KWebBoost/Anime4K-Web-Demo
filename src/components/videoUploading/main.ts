@@ -9,9 +9,7 @@ import UpscaleCNNPipeline from '../../pipelines/UpscaleCNNPipeline';
 function createFPSCounter(gui) {
   let lastFrameTime = Date.now();
   let frameCount = 0;
-  const fpsCounter = {
-    fps: 0
-  };
+  const fpsCounter = { fps: 0 };
   gui.add(fpsCounter, 'fps').name('FPS').listen();
 
   return function updateFPS() {
@@ -25,61 +23,7 @@ function createFPSCounter(gui) {
   };
 }
 
-
-const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
-  // Set video element
-  const video = document.createElement('video');
-  video.loop = true;
-  video.autoplay = true;
-  video.muted = true;
-  video.src = videoURL;
-  await video.play();
-  
-  // Constants
-  let WIDTH = video.videoWidth;
-  let HEIGHT = video.videoHeight;
-  console.log(WIDTH, HEIGHT);
-
-  // Maintain canvas aspect ratio
-  const aspectRatio = HEIGHT / WIDTH;
-  canvas.style.height = `calc(80vw * ${aspectRatio})`;
-
-  const adapter = await navigator.gpu.requestAdapter();
-  const device = await adapter.requestDevice();
-
-  if (!pageState.active) return;
-
-  // Connect canvas to WebGPU
-  const context = canvas.getContext('webgpu') as GPUCanvasContext;
-  const devicePixelRatio = window.devicePixelRatio;
-  canvas.width = canvas.clientWidth * devicePixelRatio;
-  canvas.height = canvas.clientHeight * devicePixelRatio;
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
-  context.configure({
-    device,
-    format: presentationFormat,
-    alphaMode: 'premultiplied',
-  });
-
-  // GUI options
-  const settings = {
-    requestFrame: 'requestAnimationFrame',
-    Effects: 'Upscale',
-    controlValue: 2,
-  };
-
-  // Read the stored setting
-  const savedRequestFrame = localStorage.getItem('selectedRequestFrame');
-  if (savedRequestFrame) {
-    settings.requestFrame = savedRequestFrame;
-  }
-
-  const savedEffect = localStorage.getItem('selectedEffect');
-  if (savedEffect) {
-    settings.Effects = savedEffect;
-  }
-
+function setupGUI(gui, settings, CustomPipline) {
   const requestFrameController = gui.add(settings, 'requestFrame', [
     'requestAnimationFrame',
     'requestVideoFrameCallback',
@@ -95,43 +39,90 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     window.location.reload();
   });
 
-  const updateFPS = createFPSCounter(gui);
+  if (settings.Effects === 'Deblur') {
+    gui.add(settings, 'controlValue', 0, 50, 0.1).name('Control Value').onChange((value) => {
+      CustomPipline.updateParam("strength", value);
+    });
+  }
+}
 
-  // Preparing textures for compute pipeline
+async function configureWebGPU(canvas) {
+  const adapter = await navigator.gpu.requestAdapter();
+  const device = await adapter.requestDevice();
+
+  const context = canvas.getContext('webgpu') as GPUCanvasContext;
+  const devicePixelRatio = window.devicePixelRatio;
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+  context.configure({
+    device,
+    format: presentationFormat,
+    alphaMode: 'premultiplied',
+  });
+
+  return { device, context, presentationFormat };
+}
+
+const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
+  // Set video element
+  const video = document.createElement('video');
+  video.loop = true;
+  video.autoplay = true;
+  video.muted = true;
+  video.src = videoURL;
+  await video.play();
+
+  let WIDTH = video.videoWidth;
+  let HEIGHT = video.videoHeight;
+  const aspectRatio = HEIGHT / WIDTH;
+  canvas.style.height = `calc(80vw * ${aspectRatio})`;
+
+  if (!pageState.active) return;
+
+  const { device, context, presentationFormat } = await configureWebGPU(canvas);
+
   const videoFrameTexture = device.createTexture({
     size: [WIDTH, HEIGHT, 1],
     format: 'rgba16float',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
   });
 
-  // Update function to be called within frame loop
   function updateVideoFrameTexture() {
-    device.queue.copyExternalImageToTexture(
-      { source: video },
-      { texture: videoFrameTexture },
-      [WIDTH, HEIGHT]
-    );
+    device.queue.copyExternalImageToTexture({ source: video }, { texture: videoFrameTexture }, [WIDTH, HEIGHT]);
   }
+ 
+  //GUI
+  const updateFPS = createFPSCounter(gui);
+  const settings = {
+    requestFrame: 'requestAnimationFrame',
+    Effects: 'Upscale',
+    controlValue: 2,
+  };
+
+  const savedRequestFrame = localStorage.getItem('selectedRequestFrame');
+  if (savedRequestFrame) settings.requestFrame = savedRequestFrame;
+
+  const savedEffect = localStorage.getItem('selectedEffect');
+  if (savedEffect) settings.Effects = savedEffect;
 
   var CustomPipline;
-  switch(settings.Effects) {
+  switch (settings.Effects) {
     case 'Upscale':
-        CustomPipline = new UpscaleCNNPipeline(device, videoFrameTexture);
-        break;
-
+      CustomPipline = new UpscaleCNNPipeline(device, videoFrameTexture);
+      break;
     case 'Deblur':
-        CustomPipline = new DeblurPipeline(device, videoFrameTexture);
-        gui.add(settings, 'controlValue', 0, 50, 0.1).name('Control Value').onChange((value) => {
-          CustomPipline.updateParam("strength", value);
-        });
-        break;
-
+      CustomPipline = new DeblurPipeline(device, videoFrameTexture);
+      break;
     default:
-        console.log("Invalid selection");
-        break;
+      console.log("Invalid selection");
+      break;
   }
 
+  setupGUI(gui, settings, CustomPipline);
 
+  
   // configure final rendering pipeline
   const renderBindGroupLayout = device.createBindGroupLayout({
     label: "Render Bind Group Layout",

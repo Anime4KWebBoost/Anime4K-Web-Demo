@@ -23,7 +23,7 @@ function createFPSCounter(gui) {
   };
 }
 
-function setupGUI(gui, settings, CustomPipline) {
+function setupGUI(gui, settings, CustomPipline,video) {
   const requestFrameController = gui.add(settings, 'requestFrame', [
     'requestAnimationFrame',
     'requestVideoFrameCallback',
@@ -40,10 +40,58 @@ function setupGUI(gui, settings, CustomPipline) {
   });
 
   if (settings.Effects === 'Deblur') {
-    gui.add(settings, 'controlValue', 0, 50, 0.1).name('Control Value').onChange((value) => {
+    gui.add(settings, 'controlValue', 0, 50, 0.1).name('Deblur Strength').onChange((value) => {
       CustomPipline.updateParam("strength", value);
     });
   }
+
+  //Video Pause/Resume
+  let isVideoPaused = false;
+  gui.add({
+    toggleVideo: function() {
+      if (isVideoPaused) {
+        video.play();
+        isVideoPaused = false;
+        console.log(`Video resumed`);
+      } else {
+        video.pause();
+        isVideoPaused = true;
+        console.log(`Video paused`);
+      }
+    }
+  }, 'toggleVideo').name('Pause Video');
+
+
+  //Adjust video progress
+  let isUserInteracting = false;
+  const videoProgress = {
+    get time() {
+      return video.currentTime;
+    },
+    set time(t) {
+      if (isUserInteracting) {
+        video.currentTime = t;
+      }
+    }
+  };
+
+  video.addEventListener('timeupdate', () => {
+    if (isUserInteracting) {
+      videoProgress.time = video.currentTime;
+    }
+  });
+
+  gui.add(videoProgress, 'time', 0, video.duration, 0.1)
+    .name('Video Progress')
+    .listen()
+    .onChange(() => {
+      isUserInteracting = true;
+      video.currentTime = videoProgress.time;
+    })
+    .onFinishChange(() => {
+      isUserInteracting = false;
+    });
+
 }
 
 async function configureWebGPU(canvas) {
@@ -99,7 +147,11 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     requestFrame: 'requestAnimationFrame',
     Effects: 'Upscale',
     controlValue: 2,
+    
   };
+  video.addEventListener('loadedmetadata', () => {
+    setupGUI(gui, settings, CustomPipline, video);
+  });
 
   const savedRequestFrame = localStorage.getItem('selectedRequestFrame');
   if (savedRequestFrame) settings.requestFrame = savedRequestFrame;
@@ -120,7 +172,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
       break;
   }
 
-  setupGUI(gui, settings, CustomPipline);
+  setupGUI(gui, settings, CustomPipline, video);
 
   
   // configure final rendering pipeline
@@ -193,7 +245,10 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   
   function frame() {
     // fetch a new frame from video element into texture
-    updateVideoFrameTexture();
+    if (!video.paused) {
+      // fetch a new frame from video element into texture
+      updateVideoFrameTexture();
+    }
 
     updateFPS();
 

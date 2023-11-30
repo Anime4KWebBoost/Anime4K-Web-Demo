@@ -6,6 +6,26 @@ import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.
 import DeblurPipeline from '../../pipelines/DeblurDoGPipeline';
 import UpscaleCNNPipeline from '../../pipelines/UpscaleCNNPipeline';
 
+function createFPSCounter(gui) {
+  let lastFrameTime = Date.now();
+  let frameCount = 0;
+  const fpsCounter = {
+    fps: 0
+  };
+  gui.add(fpsCounter, 'fps').name('FPS').listen();
+
+  return function updateFPS() {
+    const now = Date.now();
+    frameCount++;
+    if (now - lastFrameTime >= 1000) {
+      fpsCounter.fps = frameCount;
+      frameCount = 0;
+      lastFrameTime = now;
+    }
+  };
+}
+
+
 const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   // Set video element
   const video = document.createElement('video');
@@ -15,22 +35,21 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   video.src = videoURL;
   await video.play();
   
-  // constants
+  // Constants
   let WIDTH = video.videoWidth;
   let HEIGHT = video.videoHeight;
   console.log(WIDTH, HEIGHT);
 
-  // maintain canvas aspect ratio
+  // Maintain canvas aspect ratio
   const aspectRatio = HEIGHT / WIDTH;
   canvas.style.height = `calc(80vw * ${aspectRatio})`;
 
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
 
-
   if (!pageState.active) return;
 
-  // connect canvas to webGPU
+  // Connect canvas to WebGPU
   const context = canvas.getContext('webgpu') as GPUCanvasContext;
   const devicePixelRatio = window.devicePixelRatio;
   canvas.width = canvas.clientWidth * devicePixelRatio;
@@ -43,24 +62,75 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     alphaMode: 'premultiplied',
   });
 
-  // preparing textures for compute pipeline
+  // GUI options
+  const settings = {
+    requestFrame: 'requestAnimationFrame',
+    Effects: 'Upscale',
+    controlValue: 2,
+  };
+
+  // Read the stored setting
+  const savedRequestFrame = localStorage.getItem('selectedRequestFrame');
+  if (savedRequestFrame) {
+    settings.requestFrame = savedRequestFrame;
+  }
+
+  const savedEffect = localStorage.getItem('selectedEffect');
+  if (savedEffect) {
+    settings.Effects = savedEffect;
+  }
+
+  const requestFrameController = gui.add(settings, 'requestFrame', [
+    'requestAnimationFrame',
+    'requestVideoFrameCallback',
+  ]);
+
+  const effectsController = gui.add(settings, 'Effects', [
+    'Upscale',
+    'Deblur'
+  ]);
+
+  effectsController.onChange(function(value) {
+    localStorage.setItem('selectedEffect', value);
+    window.location.reload();
+  });
+
+  const updateFPS = createFPSCounter(gui);
+
+  // Preparing textures for compute pipeline
   const videoFrameTexture = device.createTexture({
     size: [WIDTH, HEIGHT, 1],
     format: 'rgba16float',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
   });
-  // update function to be called within frame loop
+
+  // Update function to be called within frame loop
   function updateVideoFrameTexture() {
-    // Copy the current video frame to the texture
     device.queue.copyExternalImageToTexture(
       { source: video },
       { texture: videoFrameTexture },
-      [ WIDTH, HEIGHT ]
+      [WIDTH, HEIGHT]
     );
   }
 
-  // const deblurPipeline = new DeblurPipeline(device, videoFrameTexture);
-  const upscalePipeline = new UpscaleCNNPipeline(device, videoFrameTexture);
+  var CustomPipline;
+  switch(settings.Effects) {
+    case 'Upscale':
+        CustomPipline = new UpscaleCNNPipeline(device, videoFrameTexture);
+        break;
+
+    case 'Deblur':
+        CustomPipline = new DeblurPipeline(device, videoFrameTexture);
+        gui.add(settings, 'controlValue', 0, 50, 0.1).name('Control Value').onChange((value) => {
+          CustomPipline.updateParam("strength", value);
+        });
+        break;
+
+    default:
+        console.log("Invalid selection");
+        break;
+  }
+
 
   // configure final rendering pipeline
   const renderBindGroupLayout = device.createBindGroupLayout({
@@ -124,41 +194,23 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
       },
       {
         binding: 1,
-        resource: upscalePipeline.getOutputTexture().createView(),
+        resource: CustomPipline.getOutputTexture().createView(), 
       },
     ],
   });
 
-  // GUI options
-  const settings = {
-    requestFrame: 'requestAnimationFrame',
-    shaders: 'shader 1',
-    controlValue: 2,
-  };
-
-  gui.add(settings, 'requestFrame', [
-    'requestAnimationFrame',
-    'requestVideoFrameCallback',
-  ]);
-
-  gui.add(settings, 'shaders', [
-    'shader 1',
-    'shader 2'
-  ]);
-
-  gui.add(settings, 'controlValue', 0, 10, 0.1).name('Control Value').onChange((value) => {
-    // deblurPipeline.updateParam("strength", value);
-  });
-
+  
   function frame() {
     // fetch a new frame from video element into texture
     updateVideoFrameTexture();
+
+    updateFPS();
 
     // initialize command recorder
     const commandEncoder = device.createCommandEncoder();
 
     // encode compute pipeline commands
-    upscalePipeline.pass(commandEncoder);
+    CustomPipline.pass(commandEncoder);
 
     // dispatch render pipeline
     const passEncoder = commandEncoder.beginRenderPass({
@@ -194,7 +246,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
 const VideoUploading: () => JSX.Element = () =>
   makeSample({
     name: 'WebGPU Accelerated Anime 4K Upscaling',
-    description: 'This example shows how to upload video frame to WebGPU.',
+    description: 'Team: Yuanqi Wang, Tong Hu, Daniel Zhong',
     gui: true,
     init,
     filename: __filename,

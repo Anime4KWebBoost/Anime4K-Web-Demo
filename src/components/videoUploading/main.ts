@@ -262,8 +262,8 @@ const init: SampleInit = async ({
 
   // bind 0: sampler
   const sampler = device.createSampler({
-    magFilter: 'nearest',
-    minFilter: 'nearest',
+    magFilter: 'linear',
+    minFilter: 'linear',
   });
 
   // configure render pipeline

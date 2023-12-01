@@ -49,7 +49,7 @@ const SampleLayout: React.FunctionComponent<
     return undefined;
   }, []);
 
-  const [videoURL, setVideoURL] = useState('../assets/video/OnePunchMan.mp4');
+  const [videoURL, setVideoURL] = useState('../assets/video/OnePunchMan1080.mp4');
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {

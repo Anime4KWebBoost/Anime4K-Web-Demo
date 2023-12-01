@@ -20,7 +20,6 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
   bindGroupLayouts: GPUBindGroupLayout[] = [];
   pipelineLayouts: GPUPipelineLayout[] = [];
   pipelines: GPUComputePipeline[] = [];
-  CompareBuffer: GPUBuffer
   inputTexWidth: number;
   inputTexHeight: number;
   device: GPUDevice;
@@ -200,18 +199,9 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
               format: "rgba16float",
             },
           },
-          {
-            binding: 3,
-            visibility: GPUShaderStage.COMPUTE,
-            buffer: { type: "uniform" }
-          },
         ]
       }),
     ];
-    this.CompareBuffer = device.createBuffer({
-      size: 4,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
     // textures for same size cov2d layers
     for (let i = 0; i < 10; i++) {
       this.textures.push(device.createTexture({
@@ -370,12 +360,6 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
               binding: 2,
               resource: this.textures[11].createView(),
             },
-            {
-              binding: 3,
-              resource: {
-                buffer: this.CompareBuffer,
-              }
-            }
           ]
         }));
       }
@@ -404,11 +388,6 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
 
   updateParam(param: string, value: any): void {
     throw new Error("UpscaleCNNPipeline has no param");
-  }
-  updateCompare(value: boolean): void {
-    const floatValue = value ? 1.0 : 0.0;
-    this.device.queue.writeBuffer(this.CompareBuffer, 0, new Float32Array([floatValue]));
-    console.log(floatValue);
   }
 
   getOutputTexture() : GPUTexture {

@@ -5,6 +5,8 @@ import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.
 
 import DeblurPipeline from '../../pipelines/DeblurDoGPipeline';
 import UpscaleCNNPipeline from '../../pipelines/UpscaleCNNPipeline';
+import { Anime4KPipeline } from '../../pipelines/Anime4KPipeline';
+import { GUI } from 'dat.gui';
 
 function createFPSCounter(gui) {
   let lastFrameTime = Date.now();
@@ -23,7 +25,7 @@ function createFPSCounter(gui) {
   };
 }
 
-function setupGUI(gui, settings, CustomPipline,video) {
+function setupGUI(gui: GUI, settings, CustomPipline: Anime4KPipeline, video: HTMLVideoElement, device: GPUDevice, compareBuffer: GPUBuffer) {
   const requestFrameController = gui.add(settings, 'requestFrame', [
     'requestAnimationFrame',
     'requestVideoFrameCallback',
@@ -82,7 +84,7 @@ function setupGUI(gui, settings, CustomPipline,video) {
   });
 
   gui.add(videoProgress, 'time', 0, video.duration, 0.1)
-    .name('Video Progress')
+     .name('Video Progress')
     .listen()
     .onChange(() => {
       isUserInteracting = true;
@@ -92,11 +94,11 @@ function setupGUI(gui, settings, CustomPipline,video) {
       isUserInteracting = false;
     });
 
-    gui.add(settings, 'comparisonEnabled').name('Comparison').onChange((value) => {
-      const bufferData = new Uint32Array([value ? 1 : 0]);
-      CustomPipline.updateCompare(value);
-    });
-
+  gui.add(settings, 'comparisonEnabled')
+     .name('Comparison')
+     .onChange((value) => {
+        device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([value ? 1 : 0]));
+      });
 }
 
 async function configureWebGPU(canvas) {
@@ -145,6 +147,12 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   function updateVideoFrameTexture() {
     device.queue.copyExternalImageToTexture({ source: video }, { texture: videoFrameTexture }, [WIDTH, HEIGHT]);
   }
+
+  // bind 2: compare
+  let compareBuffer = device.createBuffer({
+    size: 4,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
  
   //GUI
   const updateFPS = createFPSCounter(gui);
@@ -155,7 +163,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     comparisonEnabled: false,
   };
   video.addEventListener('loadedmetadata', () => {
-    setupGUI(gui, settings, CustomPipline, video);
+    setupGUI(gui, settings, CustomPipline, video, device, compareBuffer);
   });
 
   const savedRequestFrame = localStorage.getItem('selectedRequestFrame');
@@ -164,7 +172,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
   const savedEffect = localStorage.getItem('selectedEffect');
   if (savedEffect) settings.Effects = savedEffect;
 
-  var CustomPipline;
+  var CustomPipline: Anime4KPipeline;
   switch (settings.Effects) {
     case 'Upscale':
       CustomPipline = new UpscaleCNNPipeline(device, videoFrameTexture);
@@ -177,9 +185,8 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
       break;
   }
 
-  setupGUI(gui, settings, CustomPipline, video);
+  setupGUI(gui, settings, CustomPipline, video, device, compareBuffer);
 
-  
   // configure final rendering pipeline
   const renderBindGroupLayout = device.createBindGroupLayout({
     label: "Render Bind Group Layout",
@@ -191,6 +198,16 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
       },
       {
         binding: 1,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: {}
+      },
+      {
+        binding: 2,
+        visibility: GPUShaderStage.FRAGMENT,
+        buffer: { type: "uniform" }
+      },
+      {
+        binding: 3,
         visibility: GPUShaderStage.FRAGMENT,
         texture: {}
       }
@@ -226,7 +243,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
     },
   });
 
-  // bind 1: sampler
+  // bind 0: sampler
   const sampler = device.createSampler({
     magFilter: 'linear',
     minFilter: 'linear',
@@ -244,6 +261,16 @@ const init: SampleInit = async ({ canvas, pageState, gui, videoURL }) => {
         binding: 1,
         resource: CustomPipline.getOutputTexture().createView(), 
       },
+      {
+        binding: 2,
+        resource: {
+          buffer: compareBuffer,
+        }
+      },
+      {
+        binding: 3,
+        resource: videoFrameTexture.createView(),
+      }
     ],
   });
 

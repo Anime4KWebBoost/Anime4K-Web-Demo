@@ -12,7 +12,6 @@ export default class DeblurPipeline implements Anime4KPipeline {
   pipelineLayouts: GPUPipelineLayout[];
   pipelines: GPUComputePipeline[];
   strengthBuffer: GPUBuffer;
-  CompareBuffer: GPUBuffer
   inputTexWidth: number;
   inputTexHeight: number;
   inputTexture: GPUTexture;
@@ -194,11 +193,6 @@ export default class DeblurPipeline implements Anime4KPipeline {
           visibility: GPUShaderStage.COMPUTE,
           buffer: { type: "uniform" }
         },
-        {
-          binding: 5,
-          visibility: GPUShaderStage.COMPUTE,
-          buffer: { type: "uniform" }
-        },
       ]
     });
 
@@ -266,11 +260,6 @@ export default class DeblurPipeline implements Anime4KPipeline {
 
     // strength buffer
     this.strengthBuffer = device.createBuffer({
-      size: 4,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-    this.CompareBuffer = device.createBuffer({
       size: 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
@@ -345,12 +334,6 @@ export default class DeblurPipeline implements Anime4KPipeline {
           resource: {
             buffer: this.strengthBuffer,
           }
-        },
-        {
-          binding: 5,
-          resource: {
-            buffer: this.CompareBuffer,
-          }
         }
       ]
     });
@@ -379,13 +362,6 @@ export default class DeblurPipeline implements Anime4KPipeline {
     }
     this.device.queue.writeBuffer(this.strengthBuffer, 0, new Float32Array([value]));
   }
-
-  updateCompare(value: boolean): void {
-    const floatValue = value ? 1.0 : 0.0;
-    this.device.queue.writeBuffer(this.CompareBuffer, 0, new Float32Array([floatValue]));
-    console.log(floatValue);
-  }
-
 
   pass(encoder: GPUCommandEncoder) {
     // dispatch lumination pipeline

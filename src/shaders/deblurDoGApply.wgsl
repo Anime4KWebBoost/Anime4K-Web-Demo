@@ -3,7 +3,6 @@
 @group(0) @binding(2) var tex_original: texture_2d<f32>;
 @group(0) @binding(3) var tex_out: texture_storage_2d<rgba16float, write>;
 @group(0) @binding(4) var<uniform> strength: f32;
-@group(0) @binding(5) var<uniform> comparisonEnabled: f32;
 
 fn lumAt(x: u32, y: u32) -> vec4f { // read from lumination texture
   return textureLoad(tex_lum, vec2u(x, y), 0);
@@ -50,16 +49,5 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
 
   let cc: f32 = clamp(c_t + luma.x, color.y, color.z) - luma.x;
 
-  // comparison
-  if (comparisonEnabled == 1.0) {
-    if (pixel.x < dim_out.x / 2 - 2) {
-      textureStore(tex_out, vec2u(pixel.x, pixel.y), textureLoad(tex_original, vec2u(pixel.x, pixel.y), 0));
-      return;
-    }
-    if (pixel.x <= dim_out.x / 2 + 2) {
-      textureStore(tex_out, vec2u(pixel.x, pixel.y), vec4(1.0, 0, 0, 1));
-      return;
-    }
-  }
   textureStore(tex_out, vec2u(pixel.x, pixel.y), cc + textureLoad(tex_original, vec2u(pos.x, pos.y), 0));
 }

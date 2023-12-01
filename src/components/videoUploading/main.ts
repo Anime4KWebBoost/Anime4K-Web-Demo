@@ -30,7 +30,7 @@ function createFPSCounter(gui) {
 function setupGUI(
   gui: GUI,
   settings,
-  CustomPipline: Anime4KPipeline,
+  customPipeline: Anime4KPipeline,
   video: HTMLVideoElement,
   device: GPUDevice,
   compareBuffer: GPUBuffer,
@@ -52,7 +52,7 @@ function setupGUI(
 
   if (settings.Effects === 'Deblur') {
     gui.add(settings, 'controlValue', 0, 50, 0.1).name('Deblur Strength').onChange((value) => {
-      CustomPipline.updateParam('strength', value);
+      customPipeline.updateParam('strength', value);
     });
   }
 
@@ -179,13 +179,13 @@ const init: SampleInit = async ({
     comparisonEnabled: false,
   };
 
-  let CustomPipline: Anime4KPipeline;
+  let customPipeline: Anime4KPipeline;
   switch (settings.Effects) {
     case 'Upscale':
-      CustomPipline = new UpscaleCNNPipeline(device, videoFrameTexture);
+      customPipeline = new UpscaleCNNPipeline(device, videoFrameTexture);
       break;
     case 'Deblur':
-      CustomPipline = new DeblurPipeline(device, videoFrameTexture);
+      customPipeline = new DeblurPipeline(device, videoFrameTexture);
       break;
     default:
       console.log('Invalid selection');
@@ -193,7 +193,7 @@ const init: SampleInit = async ({
   }
 
   video.addEventListener('loadedmetadata', () => {
-    setupGUI(gui, settings, CustomPipline, video, device, compareBuffer);
+    setupGUI(gui, settings, customPipeline, video, device, compareBuffer);
   });
 
   const savedRequestFrame = localStorage.getItem('selectedRequestFrame');
@@ -202,7 +202,7 @@ const init: SampleInit = async ({
   const savedEffect = localStorage.getItem('selectedEffect');
   if (savedEffect) settings.Effects = savedEffect;
 
-  setupGUI(gui, settings, CustomPipline, video, device, compareBuffer);
+  setupGUI(gui, settings, customPipeline, video, device, compareBuffer);
 
   // configure final rendering pipeline
   const renderBindGroupLayout = device.createBindGroupLayout({
@@ -262,8 +262,8 @@ const init: SampleInit = async ({
 
   // bind 0: sampler
   const sampler = device.createSampler({
-    magFilter: 'linear',
-    minFilter: 'linear',
+    magFilter: 'nearest',
+    minFilter: 'nearest',
   });
 
   // configure render pipeline
@@ -276,7 +276,7 @@ const init: SampleInit = async ({
       },
       {
         binding: 1,
-        resource: CustomPipline.getOutputTexture().createView(),
+        resource: customPipeline.getOutputTexture().createView(),
       },
       {
         binding: 2,
@@ -304,7 +304,7 @@ const init: SampleInit = async ({
     const commandEncoder = device.createCommandEncoder();
 
     // encode compute pipeline commands
-    CustomPipline.pass(commandEncoder);
+    customPipeline.pass(commandEncoder);
 
     // dispatch render pipeline
     const passEncoder = commandEncoder.beginRenderPass({

@@ -9,7 +9,8 @@ import conv2d71WGSL from '../shaders/CNN/conv2d71.wgsl';
 import conv2d72WGSL from '../shaders/CNN/conv2d72.wgsl';
 import conv2d73WGSL from '../shaders/CNN/conv2d73.wgsl';
 import depthToSpaceWGSL from '../shaders/CNN/depthToSpace.wgsl';
-import upscaleBilinearApplyWGSL from '../shaders/CNN/biliearApply.wgsl';
+import vertexWGSL from '../shaders/apply/vertex.wgsl';
+import fragmentWGSL from '../shaders/apply/fragment.wgsl';
 import { Anime4KPipeline } from './Anime4KPipeline';
 
 export default class UpscaleCNNPipeline implements Anime4KPipeline {
@@ -26,6 +27,8 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
   pipelineLayouts: GPUPipelineLayout[] = [];
 
   pipelines: GPUComputePipeline[] = [];
+
+  renderPipeline: GPURenderPipeline;
 
   inputTexWidth: number;
 
@@ -86,8 +89,12 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
         code: depthToSpaceWGSL,
       }),
       this.device.createShaderModule({
-        label: 'upscaleBilinearApplyWGSL',
-        code: upscaleBilinearApplyWGSL,
+        label: 'bilinear apply vertex',
+        code: vertexWGSL,
+      }),
+      this.device.createShaderModule({
+        label: 'bilinear apply fragment',
+        code: fragmentWGSL,
       }),
     ];
 
@@ -191,22 +198,19 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
         label: 'bilinear apply bind group layout',
         entries: [
           {
-            binding: 0, // original texture
-            visibility: GPUShaderStage.COMPUTE,
+            binding: 0,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {},
+          },
+          {
+            binding: 1,
+            visibility: GPUShaderStage.FRAGMENT,
             texture: {},
           },
           {
-            binding: 1, // depth to space output
-            visibility: GPUShaderStage.COMPUTE,
+            binding: 2,
+            visibility: GPUShaderStage.FRAGMENT,
             texture: {},
-          },
-          {
-            binding: 2, // output texture - final
-            visibility: GPUShaderStage.COMPUTE,
-            storageTexture: {
-              access: 'write-only',
-              format: 'rgba16float',
-            },
           },
         ],
       }),
@@ -302,81 +306,101 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
       }
     }
     // textures for depth to space output and final output (2x)
-    for (let i = 10; i <= 11; i += 1) {
-      this.textures.push(device.createTexture({
-        label: `2x_${i}_texture`,
-        size: [2 * this.inputTexWidth, 2 * this.inputTexHeight, 1],
-        format: 'rgba16float',
-        usage: GPUTextureUsage.TEXTURE_BINDING
-        | GPUTextureUsage.RENDER_ATTACHMENT
-        | GPUTextureUsage.STORAGE_BINDING,
-      }));
-      if (i === 10) {
-        this.pipelineLayouts.push(this.device.createPipelineLayout({
-          label: 'depth to space pipeline layout',
-          bindGroupLayouts: [this.bindGroupLayouts[2]],
-        }));
-        this.pipelines.push(device.createComputePipeline({
-          label: 'depth to space pipeline',
-          layout: this.pipelineLayouts[i],
-          compute: {
-            module: this.modules[i],
-            entryPoint: 'computeMain',
+    this.textures.push(device.createTexture({
+      label: 'depth_to_space_texture',
+      size: [2 * this.inputTexWidth, 2 * this.inputTexHeight, 1],
+      format: 'rgba16float',
+      usage: GPUTextureUsage.TEXTURE_BINDING
+      | GPUTextureUsage.RENDER_ATTACHMENT
+      | GPUTextureUsage.STORAGE_BINDING,
+    }));
+    this.pipelineLayouts.push(this.device.createPipelineLayout({
+      label: 'depth to space pipeline layout',
+      bindGroupLayouts: [this.bindGroupLayouts[2]],
+    }));
+    this.pipelines.push(device.createComputePipeline({
+      label: 'depth to space pipeline',
+      layout: this.pipelineLayouts[10],
+      compute: {
+        module: this.modules[10],
+        entryPoint: 'computeMain',
+      },
+    }));
+    this.bindGroups.push(this.device.createBindGroup({
+      layout: this.bindGroupLayouts[2],
+      entries: [
+        {
+          binding: 0,
+          resource: this.textures[7].createView(),
+        },
+        {
+          binding: 1,
+          resource: this.textures[8].createView(),
+        },
+        {
+          binding: 2,
+          resource: this.textures[9].createView(),
+        },
+        {
+          binding: 3,
+          resource: this.textures[10].createView(),
+        },
+      ],
+    }));
+
+    // bilinear apply layer
+    this.textures.push(device.createTexture({
+      label: 'biliear_apply_texture',
+      size: [2 * this.inputTexWidth, 2 * this.inputTexHeight, 1],
+      format: 'rgba16float',
+      usage: GPUTextureUsage.TEXTURE_BINDING
+      | GPUTextureUsage.RENDER_ATTACHMENT
+      | GPUTextureUsage.STORAGE_BINDING,
+    }));
+    this.pipelineLayouts.push(this.device.createPipelineLayout({
+      label: 'bilinear apply pipeline layout',
+      bindGroupLayouts: [this.bindGroupLayouts[3]],
+    }));
+    this.renderPipeline = device.createRenderPipeline({
+      layout: this.pipelineLayouts[11],
+      vertex: {
+        module: this.modules[11],
+        entryPoint: 'vert_main',
+      },
+      fragment: {
+        module: this.modules[12],
+        entryPoint: 'main',
+        targets: [
+          {
+            format: 'rgba16float',
           },
-        }));
-        this.bindGroups.push(this.device.createBindGroup({
-          layout: this.bindGroupLayouts[2],
-          entries: [
-            {
-              binding: 0,
-              resource: this.textures[7].createView(),
-            },
-            {
-              binding: 1,
-              resource: this.textures[8].createView(),
-            },
-            {
-              binding: 2,
-              resource: this.textures[9].createView(),
-            },
-            {
-              binding: 3,
-              resource: this.textures[10].createView(),
-            },
-          ],
-        }));
-      } else {
-        this.pipelineLayouts.push(this.device.createPipelineLayout({
-          label: 'bilinear apply pipeline layout',
-          bindGroupLayouts: [this.bindGroupLayouts[3]],
-        }));
-        this.pipelines.push(device.createComputePipeline({
-          label: 'biliear apply pipeline',
-          layout: this.pipelineLayouts[i],
-          compute: {
-            module: this.modules[i],
-            entryPoint: 'computeMain',
-          },
-        }));
-        this.bindGroups.push(this.device.createBindGroup({
-          layout: this.bindGroupLayouts[3],
-          entries: [
-            {
-              binding: 0,
-              resource: this.inputTexture.createView(),
-            },
-            {
-              binding: 1,
-              resource: this.textures[10].createView(),
-            },
-            {
-              binding: 2,
-              resource: this.textures[11].createView(),
-            },
-          ],
-        }));
-      }
-    }
+        ],
+      },
+      primitive: {
+        topology: 'triangle-list',
+      },
+    });
+    const sampler = device.createSampler({
+      magFilter: 'linear',
+      minFilter: 'linear',
+    });
+    this.bindGroups.push(this.device.createBindGroup({
+      layout: this.bindGroupLayouts[3],
+      entries: [
+        {
+          binding: 0,
+          resource: sampler,
+        },
+        {
+          binding: 1,
+          resource: this.textures[10].createView(),
+        },
+        {
+          binding: 2,
+          resource: this.inputTexture.createView(),
+        },
+      ],
+    }));
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -423,13 +447,21 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
     depthToSpacePass.end();
 
     // dispatch bilinear and apply upscale
-    const biliearPass = encoder.beginComputePass();
-    biliearPass.setPipeline(this.pipelines[11]);
-    biliearPass.setBindGroup(0, this.bindGroups[11]);
-    biliearPass.dispatchWorkgroups(
-      Math.ceil(this.inputTexWidth / 4),
-      Math.ceil(this.inputTexHeight / 4),
-    );
-    biliearPass.end();
+    const bilinearPass = encoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: this.textures[11].createView(),
+          clearValue: {
+            r: 0.0, g: 0.0, b: 0.0, a: 1.0,
+          },
+          loadOp: 'clear',
+          storeOp: 'store',
+        },
+      ],
+    });
+    bilinearPass.setPipeline(this.renderPipeline);
+    bilinearPass.setBindGroup(0, this.bindGroups[11]);
+    bilinearPass.draw(6);
+    bilinearPass.end();
   }
 }

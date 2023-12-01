@@ -1,27 +1,36 @@
-import conv2dWGSL from '../shaders/CNN/conv2d.wgsl'
-import conv2d1WGSL from '../shaders/CNN/conv2d1.wgsl'
-import conv2d2WGSL from '../shaders/CNN/conv2d2.wgsl'
-import conv2d3WGSL from '../shaders/CNN/conv2d3.wgsl'
-import conv2d4WGSL from '../shaders/CNN/conv2d4.wgsl'
-import conv2d5WGSL from '../shaders/CNN/conv2d5.wgsl'
-import conv2d6WGSL from '../shaders/CNN/conv2d6.wgsl'
-import conv2d71WGSL from '../shaders/CNN/conv2d71.wgsl'
-import conv2d72WGSL from '../shaders/CNN/conv2d72.wgsl'
-import conv2d73WGSL from '../shaders/CNN/conv2d73.wgsl'
-import depthToSpaceWGSL from '../shaders/CNN/depthToSpace.wgsl'
-import upscaleBilinearApplyWGSL from '../shaders/CNN/biliearApply.wgsl'
-import { Anime4KPipeline } from './Anime4KPipeline'
+import conv2dWGSL from '../shaders/CNN/conv2d.wgsl';
+import conv2d1WGSL from '../shaders/CNN/conv2d1.wgsl';
+import conv2d2WGSL from '../shaders/CNN/conv2d2.wgsl';
+import conv2d3WGSL from '../shaders/CNN/conv2d3.wgsl';
+import conv2d4WGSL from '../shaders/CNN/conv2d4.wgsl';
+import conv2d5WGSL from '../shaders/CNN/conv2d5.wgsl';
+import conv2d6WGSL from '../shaders/CNN/conv2d6.wgsl';
+import conv2d71WGSL from '../shaders/CNN/conv2d71.wgsl';
+import conv2d72WGSL from '../shaders/CNN/conv2d72.wgsl';
+import conv2d73WGSL from '../shaders/CNN/conv2d73.wgsl';
+import depthToSpaceWGSL from '../shaders/CNN/depthToSpace.wgsl';
+import upscaleBilinearApplyWGSL from '../shaders/CNN/biliearApply.wgsl';
+import { Anime4KPipeline } from './Anime4KPipeline';
 
 export default class UpscaleCNNPipeline implements Anime4KPipeline {
   textures: GPUTexture[] = [];
+
   inputTexture: GPUTexture;
+
   bindGroups: GPUBindGroup[] = [];
+
   modules: GPUShaderModule[] = [];
+
   bindGroupLayouts: GPUBindGroupLayout[] = [];
+
   pipelineLayouts: GPUPipelineLayout[] = [];
+
   pipelines: GPUComputePipeline[] = [];
+
   inputTexWidth: number;
+
   inputTexHeight: number;
+
   device: GPUDevice;
 
   constructor(device: GPUDevice, inputTexture: GPUTexture) {
@@ -81,134 +90,136 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
         code: upscaleBilinearApplyWGSL,
       }),
     ];
-    
+
     // bind group layouts
     this.bindGroupLayouts = [
       device.createBindGroupLayout({
-        label: "4 to 4 convolution bind group layout",
+        label: '4 to 4 convolution bind group layout',
         entries: [
           {
             binding: 0, // conv2d x
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 1, // conv2d x + 1
             visibility: GPUShaderStage.COMPUTE,
             storageTexture: {
-              access: "write-only",
-              format: "rgba16float",
+              access: 'write-only',
+              format: 'rgba16float',
             },
-          }
-        ]
+          },
+        ],
       }),
       device.createBindGroupLayout({
-        label: "28 to 4 convolution bind group layout",
+        label: '28 to 4 convolution bind group layout',
         entries: [
           {
             binding: 0, // conv2d
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 1, // conv2d 1
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 2, // conv2d 2
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 3, // conv2d 3
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 4, // conv2d 4
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 5, // conv2d 5
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 6, // conv2d 6
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 7, // conv2d 7 1/2/3
             visibility: GPUShaderStage.COMPUTE,
             storageTexture: {
-              access: "write-only",
-              format: "rgba16float",
+              access: 'write-only',
+              format: 'rgba16float',
             },
-          }
-        ]
+          },
+        ],
       }),
       device.createBindGroupLayout({
-        label: "depth to space bind group layout",
+        label: 'depth to space bind group layout',
         entries: [
           {
             binding: 0, // conv2d 7 - 1
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 1, // conv2d 7 - 2
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 2, // conv2d 7 - 3
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 3, // output texture
             visibility: GPUShaderStage.COMPUTE,
             storageTexture: {
-              access: "write-only",
-              format: "rgba16float",
+              access: 'write-only',
+              format: 'rgba16float',
             },
-          }
-        ]
+          },
+        ],
       }),
       device.createBindGroupLayout({
-        label: "bilinear apply bind group layout",
+        label: 'bilinear apply bind group layout',
         entries: [
           {
             binding: 0, // original texture
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 1, // depth to space output
             visibility: GPUShaderStage.COMPUTE,
-            texture: {}
+            texture: {},
           },
           {
             binding: 2, // output texture - final
             visibility: GPUShaderStage.COMPUTE,
             storageTexture: {
-              access: "write-only",
-              format: "rgba16float",
+              access: 'write-only',
+              format: 'rgba16float',
             },
           },
-        ]
+        ],
       }),
     ];
     // textures for same size cov2d layers
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 10; i += 1) {
       this.textures.push(device.createTexture({
         label: `conv2d_${i}_texture`,
         size: [this.inputTexWidth, this.inputTexHeight, 1],
         format: 'rgba16float',
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+        usage: GPUTextureUsage.TEXTURE_BINDING
+        | GPUTextureUsage.RENDER_ATTACHMENT
+        | GPUTextureUsage.STORAGE_BINDING,
       }));
 
       if (i <= 6) { // first 7 conv2ds
@@ -217,17 +228,18 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
           entries: [
             {
               binding: 0,
-              resource: i === 0 ? this.inputTexture.createView() : this.textures[i - 1].createView(),
+              resource: i === 0 ? this.inputTexture.createView()
+                : this.textures[i - 1].createView(),
             },
             {
               binding: 1,
               resource: this.textures[i].createView(),
-            }
-          ]
+            },
+          ],
         }));
         this.pipelineLayouts.push(this.device.createPipelineLayout({
           label: `conv2d_${i} pipeline layout`,
-          bindGroupLayouts: [ this.bindGroupLayouts[0] ],
+          bindGroupLayouts: [this.bindGroupLayouts[0]],
         }));
         this.pipelines.push(device.createComputePipeline({
           label: `conv2d_${i} pipeline`,
@@ -235,7 +247,7 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
           compute: {
             module: this.modules[i],
             entryPoint: 'computeMain',
-          }
+          },
         }));
       } else { // conv2d 7.1 7.2 7.3
         this.bindGroups.push(this.device.createBindGroup({
@@ -272,12 +284,12 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
             {
               binding: 7,
               resource: this.textures[i].createView(),
-            }
-          ]
+            },
+          ],
         }));
         this.pipelineLayouts.push(this.device.createPipelineLayout({
           label: `conv2d_${i} pipeline layout`,
-          bindGroupLayouts: [ this.bindGroupLayouts[1] ],
+          bindGroupLayouts: [this.bindGroupLayouts[1]],
         }));
         this.pipelines.push(device.createComputePipeline({
           label: `conv2d_7_${i - 6} pipeline`,
@@ -285,31 +297,32 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
           compute: {
             module: this.modules[i],
             entryPoint: 'computeMain',
-          }
+          },
         }));
       }
-      
     }
     // textures for depth to space output and final output (2x)
-    for (let i of [10, 11]) {
+    for (let i = 10; i <= 11; i += 1) {
       this.textures.push(device.createTexture({
         label: `2x_${i}_texture`,
         size: [2 * this.inputTexWidth, 2 * this.inputTexHeight, 1],
         format: 'rgba16float',
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+        usage: GPUTextureUsage.TEXTURE_BINDING
+        | GPUTextureUsage.RENDER_ATTACHMENT
+        | GPUTextureUsage.STORAGE_BINDING,
       }));
       if (i === 10) {
         this.pipelineLayouts.push(this.device.createPipelineLayout({
-          label: `depth to space pipeline layout`,
-          bindGroupLayouts: [ this.bindGroupLayouts[2] ],
+          label: 'depth to space pipeline layout',
+          bindGroupLayouts: [this.bindGroupLayouts[2]],
         }));
         this.pipelines.push(device.createComputePipeline({
-          label: `depth to space pipeline`,
+          label: 'depth to space pipeline',
           layout: this.pipelineLayouts[i],
           compute: {
             module: this.modules[i],
             entryPoint: 'computeMain',
-          }
+          },
         }));
         this.bindGroups.push(this.device.createBindGroup({
           layout: this.bindGroupLayouts[2],
@@ -329,21 +342,21 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
             {
               binding: 3,
               resource: this.textures[10].createView(),
-            }
-          ]
-        }))
+            },
+          ],
+        }));
       } else {
         this.pipelineLayouts.push(this.device.createPipelineLayout({
-          label: `bilinear apply pipeline layout`,
-          bindGroupLayouts: [ this.bindGroupLayouts[3] ],
+          label: 'bilinear apply pipeline layout',
+          bindGroupLayouts: [this.bindGroupLayouts[3]],
         }));
         this.pipelines.push(device.createComputePipeline({
-          label: `biliear apply pipeline`,
+          label: 'biliear apply pipeline',
           layout: this.pipelineLayouts[i],
           compute: {
             module: this.modules[i],
             entryPoint: 'computeMain',
-          }
+          },
         }));
         this.bindGroups.push(this.device.createBindGroup({
           layout: this.bindGroupLayouts[3],
@@ -360,34 +373,15 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
               binding: 2,
               resource: this.textures[11].createView(),
             },
-          ]
+          ],
         }));
       }
     }
-
-    // configure lumination pipeline
-    const luminationBindGroupLayout = device.createBindGroupLayout({
-      label: "lumination Bind Group Layout",
-      entries: [
-        {
-          binding: 0, // input frame as texture
-          visibility: GPUShaderStage.COMPUTE,
-          texture: {}
-        },
-        {
-          binding: 1, // output texture
-          visibility: GPUShaderStage.COMPUTE,
-          storageTexture: {
-            access: "write-only",
-            format: "rgba16float",
-          },
-        }
-      ]
-    });
   }
 
-  updateParam(param: string, value: any): void {
-    throw new Error("UpscaleCNNPipeline has no param");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  updateParam(param: string, value): void {
+    throw new Error(`${this.constructor.name} has no param`);
   }
 
   getOutputTexture() : GPUTexture {
@@ -395,20 +389,26 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
   }
 
   pass(encoder: GPUCommandEncoder) {
-    for (let i = 0; i <= 6; i++) {
+    for (let i = 0; i <= 6; i += 1) {
       // dispatch the first 7 conv2d layers
       const pass = encoder.beginComputePass();
       pass.setPipeline(this.pipelines[i]);
       pass.setBindGroup(0, this.bindGroups[i]);
-      pass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
+      pass.dispatchWorkgroups(
+        Math.ceil(this.inputTexWidth / 8),
+        Math.ceil(this.inputTexHeight / 8),
+      );
       pass.end();
     }
-    for (let i = 7; i <= 9; i++) {
+    for (let i = 7; i <= 9; i += 1) {
       // dispatch conv2d_7 in three different batches
       const pass = encoder.beginComputePass();
       pass.setPipeline(this.pipelines[i]);
       pass.setBindGroup(0, this.bindGroups[i]);
-      pass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
+      pass.dispatchWorkgroups(
+        Math.ceil(this.inputTexWidth / 8),
+        Math.ceil(this.inputTexHeight / 8),
+      );
       pass.end();
     }
 
@@ -416,14 +416,20 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
     const depthToSpacePass = encoder.beginComputePass();
     depthToSpacePass.setPipeline(this.pipelines[10]);
     depthToSpacePass.setBindGroup(0, this.bindGroups[10]);
-    depthToSpacePass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 4), Math.ceil(this.inputTexHeight / 4));
+    depthToSpacePass.dispatchWorkgroups(
+      Math.ceil(this.inputTexWidth / 4),
+      Math.ceil(this.inputTexHeight / 4),
+    );
     depthToSpacePass.end();
 
     // dispatch bilinear and apply upscale
     const biliearPass = encoder.beginComputePass();
     biliearPass.setPipeline(this.pipelines[11]);
     biliearPass.setBindGroup(0, this.bindGroups[11]);
-    biliearPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 4), Math.ceil(this.inputTexHeight / 4));
+    biliearPass.dispatchWorkgroups(
+      Math.ceil(this.inputTexWidth / 4),
+      Math.ceil(this.inputTexHeight / 4),
+    );
     biliearPass.end();
   }
-};
+}

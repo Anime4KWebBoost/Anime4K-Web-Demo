@@ -6,15 +6,25 @@ import { Anime4KPipeline } from './Anime4KPipeline';
 
 export default class DeblurPipeline implements Anime4KPipeline {
   textures: GPUTexture[];
+
   modules: GPUShaderModule[];
+
   bindGroupLayouts: GPUBindGroupLayout[];
+
   bindGroups: GPUBindGroup[];
+
   pipelineLayouts: GPUPipelineLayout[];
+
   pipelines: GPUComputePipeline[];
+
   strengthBuffer: GPUBuffer;
+
   inputTexWidth: number;
+
   inputTexHeight: number;
+
   inputTexture: GPUTexture;
+
   device: GPUDevice;
 
   constructor(device: GPUDevice, inputTexture: GPUTexture) {
@@ -25,22 +35,22 @@ export default class DeblurPipeline implements Anime4KPipeline {
 
     // configure lumination pipeline
     const luminationBindGroupLayout = device.createBindGroupLayout({
-      label: "lumination Bind Group Layout",
+      label: 'lumination Bind Group Layout',
       entries: [
         {
           binding: 0, // input frame as texture
           visibility: GPUShaderStage.COMPUTE,
-          texture: {}
+          texture: {},
         },
         {
           binding: 1, // output texture
           visibility: GPUShaderStage.COMPUTE,
           storageTexture: {
-            access: "write-only",
-            format: "rgba16float",
+            access: 'write-only',
+            format: 'rgba16float',
           },
-        }
-      ]
+        },
+      ],
     });
 
     const luminationModule = device.createShaderModule({
@@ -49,8 +59,8 @@ export default class DeblurPipeline implements Anime4KPipeline {
     });
 
     const luminationPipelineLayout = device.createPipelineLayout({
-      label: "lumination pipeline layout",
-      bindGroupLayouts: [ luminationBindGroupLayout ],
+      label: 'lumination pipeline layout',
+      bindGroupLayouts: [luminationBindGroupLayout],
     });
 
     const luminationPipeline = device.createComputePipeline({
@@ -59,34 +69,36 @@ export default class DeblurPipeline implements Anime4KPipeline {
       compute: {
         module: luminationModule,
         entryPoint: 'computeMain',
-      }
+      },
     });
 
     // bind 1: output texture
     const luminationTexture = device.createTexture({
       size: [this.inputTexWidth, this.inputTexHeight, 1],
       format: 'rgba16float',
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.TEXTURE_BINDING
+      | GPUTextureUsage.RENDER_ATTACHMENT
+      | GPUTextureUsage.STORAGE_BINDING,
     });
 
     // configure deblurDoGX pipeline
     const deblurDoGXBindGroupLayout = device.createBindGroupLayout({
-      label: "deblurDoGX Bind Group Layout",
+      label: 'deblurDoGX Bind Group Layout',
       entries: [
         {
           binding: 0, // input frame as texture
           visibility: GPUShaderStage.COMPUTE,
-          texture: {}
+          texture: {},
         },
         {
           binding: 1, // output texture
           visibility: GPUShaderStage.COMPUTE,
           storageTexture: {
-            access: "write-only",
-            format: "rgba16float",
+            access: 'write-only',
+            format: 'rgba16float',
           },
-        }
-      ]
+        },
+      ],
     });
 
     const deblurDoGXModule = device.createShaderModule({
@@ -95,8 +107,8 @@ export default class DeblurPipeline implements Anime4KPipeline {
     });
 
     const deblurDoGXPipelineLayout = device.createPipelineLayout({
-      label: "deblurDoGX pipeline layout",
-      bindGroupLayouts: [ deblurDoGXBindGroupLayout ],
+      label: 'deblurDoGX pipeline layout',
+      bindGroupLayouts: [deblurDoGXBindGroupLayout],
     });
 
     const deblurDoGXPipeline = device.createComputePipeline({
@@ -105,34 +117,36 @@ export default class DeblurPipeline implements Anime4KPipeline {
       compute: {
         module: deblurDoGXModule,
         entryPoint: 'computeMain',
-      }
+      },
     });
 
     // bind 1: output texture
     const deblurDoGXTexture = device.createTexture({
       size: [this.inputTexWidth, this.inputTexHeight, 1],
       format: 'rgba16float',
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.TEXTURE_BINDING
+      | GPUTextureUsage.RENDER_ATTACHMENT
+      | GPUTextureUsage.STORAGE_BINDING,
     });
 
     // configure deblurDoGY pipeline
     const deblurDoGYBindGroupLayout = device.createBindGroupLayout({
-      label: "deblurDoGY Bind Group Layout",
+      label: 'deblurDoGY Bind Group Layout',
       entries: [
         {
           binding: 0, // input frame as texture
           visibility: GPUShaderStage.COMPUTE,
-          texture: {}
+          texture: {},
         },
         {
           binding: 1, // output texture
           visibility: GPUShaderStage.COMPUTE,
           storageTexture: {
-            access: "write-only",
-            format: "rgba16float",
+            access: 'write-only',
+            format: 'rgba16float',
           },
-        }
-      ]
+        },
+      ],
     });
 
     const deblurDoGYModule = device.createShaderModule({
@@ -141,8 +155,8 @@ export default class DeblurPipeline implements Anime4KPipeline {
     });
 
     const deblurDoGYPipelineLayout = device.createPipelineLayout({
-      label: "deblurDoGY pipeline layout",
-      bindGroupLayouts: [ deblurDoGYBindGroupLayout ],
+      label: 'deblurDoGY pipeline layout',
+      bindGroupLayouts: [deblurDoGYBindGroupLayout],
     });
 
     const deblurDoGYPipeline = device.createComputePipeline({
@@ -151,49 +165,51 @@ export default class DeblurPipeline implements Anime4KPipeline {
       compute: {
         module: deblurDoGYModule,
         entryPoint: 'computeMain',
-      }
+      },
     });
 
     // bind 1: output texture
     const deblurDoGYTexture = device.createTexture({
       size: [this.inputTexWidth, this.inputTexHeight, 1],
       format: 'rgba16float',
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.TEXTURE_BINDING
+      | GPUTextureUsage.RENDER_ATTACHMENT
+      | GPUTextureUsage.STORAGE_BINDING,
     });
 
     // configure deblurDoGApply pipeline
     const deblurDoGApplyBindGroupLayout = device.createBindGroupLayout({
-      label: "deblurDoGApply Bind Group Layout",
+      label: 'deblurDoGApply Bind Group Layout',
       entries: [
         {
           binding: 0, // input frame as texture
           visibility: GPUShaderStage.COMPUTE,
-          texture: {}
+          texture: {},
         },
         {
           binding: 1,
           visibility: GPUShaderStage.COMPUTE,
-          texture: {}
+          texture: {},
         },
         {
           binding: 2,
           visibility: GPUShaderStage.COMPUTE,
-          texture: {}
+          texture: {},
         },
         {
           binding: 3, // output texture
           visibility: GPUShaderStage.COMPUTE,
           storageTexture: {
-            access: "write-only",
-            format: "rgba16float",
+            access: 'write-only',
+            format: 'rgba16float',
           },
         },
         {
           binding: 4,
           visibility: GPUShaderStage.COMPUTE,
-          buffer: { type: "uniform" }
+          buffer: { type: 'uniform' },
         },
-      ]
+      ],
     });
 
     const deblurDoGApplyModule = device.createShaderModule({
@@ -202,8 +218,8 @@ export default class DeblurPipeline implements Anime4KPipeline {
     });
 
     const deblurDoGApplyPipelineLayout = device.createPipelineLayout({
-      label: "deblurDoGApply pipeline layout",
-      bindGroupLayouts: [ deblurDoGApplyBindGroupLayout ],
+      label: 'deblurDoGApply pipeline layout',
+      bindGroupLayouts: [deblurDoGApplyBindGroupLayout],
     });
 
     const deblurDoGApplyPipeline = device.createComputePipeline({
@@ -212,14 +228,16 @@ export default class DeblurPipeline implements Anime4KPipeline {
       compute: {
         module: deblurDoGApplyModule,
         entryPoint: 'computeMain',
-      }
+      },
     });
 
     // bind 1: output texture
     const deblurDoGApplyTexture = device.createTexture({
       size: [this.inputTexWidth, this.inputTexHeight, 1],
       format: 'rgba16float',
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.TEXTURE_BINDING
+      | GPUTextureUsage.RENDER_ATTACHMENT
+      | GPUTextureUsage.STORAGE_BINDING,
     });
 
     // gather all necessary information
@@ -275,8 +293,8 @@ export default class DeblurPipeline implements Anime4KPipeline {
         {
           binding: 1,
           resource: this.textures[0].createView(),
-        }
-      ]
+        },
+      ],
     });
 
     // configure deblurDoGX pass
@@ -290,8 +308,8 @@ export default class DeblurPipeline implements Anime4KPipeline {
         {
           binding: 1,
           resource: this.textures[1].createView(),
-        }
-      ]
+        },
+      ],
     });
 
     // configure deblurDoGY pass
@@ -305,8 +323,8 @@ export default class DeblurPipeline implements Anime4KPipeline {
         {
           binding: 1,
           resource: this.textures[2].createView(),
-        }
-      ]
+        },
+      ],
     });
 
     // configure deblurDoGApply pass
@@ -333,9 +351,9 @@ export default class DeblurPipeline implements Anime4KPipeline {
           binding: 4,
           resource: {
             buffer: this.strengthBuffer,
-          }
-        }
-      ]
+          },
+        },
+      ],
     });
 
     this.bindGroups = [
@@ -343,19 +361,19 @@ export default class DeblurPipeline implements Anime4KPipeline {
       deblurDoGXBindGroup,
       deblurDoGYBindGroup,
       deblurDoGApplyBindGroup,
-    ]
+    ];
   }
 
   getOutputTexture() : GPUTexture {
     return this.textures[this.textures.length - 1];
   }
 
-  updateParam(param: string, value: any): void {
-    if (param !== 'strength' ) {
+  updateParam(param: string, value): void {
+    if (param !== 'strength') {
       throw new Error(`No param name as ${param}`);
     }
     if (typeof value !== 'number') {
-      throw new Error("strength must be a number");
+      throw new Error('strength must be a number');
     }
     if (value < 0) {
       throw new Error(`negative strength (${value}) is not allowed`);
@@ -368,28 +386,40 @@ export default class DeblurPipeline implements Anime4KPipeline {
     const luminationPass = encoder.beginComputePass();
     luminationPass.setPipeline(this.pipelines[0]);
     luminationPass.setBindGroup(0, this.bindGroups[0]);
-    luminationPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
+    luminationPass.dispatchWorkgroups(
+      Math.ceil(this.inputTexWidth / 8),
+      Math.ceil(this.inputTexHeight / 8),
+    );
     luminationPass.end();
 
     // dispatch deblurDoGX pipeline
     const deblurDoGXPass = encoder.beginComputePass();
     deblurDoGXPass.setPipeline(this.pipelines[1]);
     deblurDoGXPass.setBindGroup(0, this.bindGroups[1]);
-    deblurDoGXPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
+    deblurDoGXPass.dispatchWorkgroups(
+      Math.ceil(this.inputTexWidth / 8),
+      Math.ceil(this.inputTexHeight / 8),
+    );
     deblurDoGXPass.end();
 
     // dispatch deblurDoGY pipeline
     const deblurDoGYPass = encoder.beginComputePass();
     deblurDoGYPass.setPipeline(this.pipelines[2]);
     deblurDoGYPass.setBindGroup(0, this.bindGroups[2]);
-    deblurDoGYPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
+    deblurDoGYPass.dispatchWorkgroups(
+      Math.ceil(this.inputTexWidth / 8),
+      Math.ceil(this.inputTexHeight / 8),
+    );
     deblurDoGYPass.end();
 
     // dispatch deblurDoGApply pipeline
     const deblurDoGApplyPass = encoder.beginComputePass();
     deblurDoGApplyPass.setPipeline(this.pipelines[3]);
     deblurDoGApplyPass.setBindGroup(0, this.bindGroups[3]);
-    deblurDoGApplyPass.dispatchWorkgroups(Math.ceil(this.inputTexWidth / 8), Math.ceil(this.inputTexHeight / 8));
+    deblurDoGApplyPass.dispatchWorkgroups(
+      Math.ceil(this.inputTexWidth / 8),
+      Math.ceil(this.inputTexHeight / 8),
+    );
     deblurDoGApplyPass.end();
   }
-};
+}

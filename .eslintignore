@@ -1,0 +1,6 @@
+src/components/SampleLayout.tsx
+src/pages/_app.tsx
+src/pages/_document.tsx
+src/pages/index.tsx
+src/pages/samples/*.tsx
+src/types.d.ts

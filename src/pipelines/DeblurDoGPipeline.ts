@@ -76,9 +76,7 @@ export default class DeblurPipeline implements Anime4KPipeline {
     const luminationTexture = device.createTexture({
       size: [this.inputTexWidth, this.inputTexHeight, 1],
       format: 'rgba16float',
-      usage: GPUTextureUsage.TEXTURE_BINDING
-      | GPUTextureUsage.RENDER_ATTACHMENT
-      | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
     });
 
     // configure deblurDoGX pipeline
@@ -124,9 +122,7 @@ export default class DeblurPipeline implements Anime4KPipeline {
     const deblurDoGXTexture = device.createTexture({
       size: [this.inputTexWidth, this.inputTexHeight, 1],
       format: 'rgba16float',
-      usage: GPUTextureUsage.TEXTURE_BINDING
-      | GPUTextureUsage.RENDER_ATTACHMENT
-      | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
     });
 
     // configure deblurDoGY pipeline
@@ -172,9 +168,7 @@ export default class DeblurPipeline implements Anime4KPipeline {
     const deblurDoGYTexture = device.createTexture({
       size: [this.inputTexWidth, this.inputTexHeight, 1],
       format: 'rgba16float',
-      usage: GPUTextureUsage.TEXTURE_BINDING
-      | GPUTextureUsage.RENDER_ATTACHMENT
-      | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
     });
 
     // configure deblurDoGApply pipeline
@@ -235,9 +229,7 @@ export default class DeblurPipeline implements Anime4KPipeline {
     const deblurDoGApplyTexture = device.createTexture({
       size: [this.inputTexWidth, this.inputTexHeight, 1],
       format: 'rgba16float',
-      usage: GPUTextureUsage.TEXTURE_BINDING
-      | GPUTextureUsage.RENDER_ATTACHMENT
-      | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
     });
 
     // gather all necessary information
@@ -365,7 +357,7 @@ export default class DeblurPipeline implements Anime4KPipeline {
   }
 
   getOutputTexture() : GPUTexture {
-    return this.textures[this.textures.length - 1];
+    return this.textures[3];
   }
 
   updateParam(param: string, value): void {

@@ -221,9 +221,7 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
         label: `conv2d_${i}_texture`,
         size: [this.inputTexWidth, this.inputTexHeight, 1],
         format: 'rgba16float',
-        usage: GPUTextureUsage.TEXTURE_BINDING
-        | GPUTextureUsage.RENDER_ATTACHMENT
-        | GPUTextureUsage.STORAGE_BINDING,
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
       }));
 
       if (i <= 6) { // first 7 conv2ds
@@ -310,9 +308,7 @@ export default class UpscaleCNNPipeline implements Anime4KPipeline {
       label: 'depth_to_space_texture',
       size: [2 * this.inputTexWidth, 2 * this.inputTexHeight, 1],
       format: 'rgba16float',
-      usage: GPUTextureUsage.TEXTURE_BINDING
-      | GPUTextureUsage.RENDER_ATTACHMENT
-      | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
     }));
     this.pipelineLayouts.push(this.device.createPipelineLayout({
       label: 'depth to space pipeline layout',

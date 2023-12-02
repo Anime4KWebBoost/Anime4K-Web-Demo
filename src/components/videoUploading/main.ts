@@ -176,7 +176,7 @@ const init: SampleInit = async ({
   const updateFPS = createFPSCounter(gui);
   const settings = {
     requestFrame: 'requestAnimationFrame',
-    Effects: 'Upscale',
+    Effects: localStorage.getItem('selectedEffect') || 'Upscale',
     controlValue: 2,
     comparisonEnabled: false,
   };

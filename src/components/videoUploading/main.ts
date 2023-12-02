@@ -52,7 +52,9 @@ function setupGUI(
 
   if (settings.Effects === 'Deblur') {
     gui.add(settings, 'controlValue', 0, 50, 0.1).name('Deblur Strength').onChange((value) => {
-      customPipeline.updateParam('strength', value);
+      if (customPipeline instanceof DeblurPipeline) {
+        customPipeline.updateParam('strength', value);
+      }
     });
   }
 

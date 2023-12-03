@@ -56,6 +56,7 @@ function setupGUI(
   effectsController.onChange((value) => {
     settings.Effects = value;
     saveSetting(settings);
+    localStorage.setItem('videoSource', video.src);
     window.location.reload();
   });
 
@@ -159,7 +160,18 @@ const init: SampleInit = async ({
   video.loop = true;
   video.autoplay = true;
   video.muted = true;
-  video.src = videoURL;
+  if (videoURL !== '../assets/video/OnePunchMan.mp4') {
+    video.src = videoURL;
+    localStorage.setItem('videoSource', videoURL);
+    window.location.reload();
+    console.log('New video URL:', videoURL);
+  } else {
+    const storedVideoURL = localStorage.getItem('videoSource');
+    video.src = storedVideoURL;
+    localStorage.setItem('videoSource', videoURL);
+    console.log('Using stored/default video URL:', video.src);
+  }
+
   await video.play();
 
   const WIDTH = video.videoWidth;

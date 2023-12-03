@@ -28,13 +28,12 @@ function createFPSCounter(gui: GUI) {
 }
 
 function saveSetting(settings) {
-  for (const key in settings) {
+  Object.keys(settings).forEach((key) => {
     const value = settings[key];
     const valueToStore = typeof value === 'boolean' ? value.toString() : value;
     localStorage.setItem(key, valueToStore);
-  }
+  });
 }
-
 
 function setupGUI(
   gui: GUI,
@@ -45,11 +44,7 @@ function setupGUI(
   compareBuffer: GPUBuffer,
   splitRatioBuffer: GPUBuffer,
 ) {
-  gui.add(settings, 'requestFrame', ['requestAnimationFrame', 'requestVideoFrameCallback'])
-  .onChange(value => {
-    settings.requestFrame = value;
-    saveSetting(settings);
-  });
+  gui.add(settings, 'requestFrame', ['requestAnimationFrame', 'requestVideoFrameCallback']).onChange((value) => { settings.requestFrame = value; saveSetting(settings); });
 
   const effectsController = gui.add(settings, 'Effects', [
     'Upscale',
@@ -122,7 +117,7 @@ function setupGUI(
     .name('Comparison')
     .onChange((value) => {
       settings.comparisonEnabled = value;
-      saveSetting(settings)
+      saveSetting(settings);
       device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([value ? 1 : 0]));
     });
 
@@ -130,7 +125,7 @@ function setupGUI(
     .name('Split Ratio %')
     .onChange((value) => {
       settings.splitRatio = value;
-      saveSetting(settings)
+      saveSetting(settings);
       device.queue.writeBuffer(splitRatioBuffer, 0, new Float32Array([value / 100]));
     });
 }
@@ -212,7 +207,7 @@ const init: SampleInit = async ({
     splitRatio: parseFloat(localStorage.getItem('splitRatio')) || 50,
   };
 
-  //initial pipline mode
+  // initial pipline mode
   let customPipeline: Anime4KPipeline;
   switch (settings.Effects) {
     case 'Upscale':
@@ -234,19 +229,15 @@ const init: SampleInit = async ({
   const savedRequestFrame = localStorage.getItem('selectedRequestFrame');
   if (savedRequestFrame) settings.requestFrame = savedRequestFrame;
 
-
   setupGUI(gui, settings, customPipeline, video, device, compareBuffer, splitRatioBuffer);
 
-
-
-  //initial comparsion setting
+  // initial comparsion setting
   if (settings.comparisonEnabled) {
     device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([1]));
   } else {
     device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([0]));
   }
   device.queue.writeBuffer(splitRatioBuffer, 0, new Float32Array([settings.splitRatio / 100]));
-
 
   // configure final rendering pipeline
   const renderBindGroupLayout = device.createBindGroupLayout({

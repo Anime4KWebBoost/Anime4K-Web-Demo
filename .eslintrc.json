@@ -18,12 +18,14 @@
     "rules": {
       "no-bitwise": "off",
       "import/extensions": "off",
-      "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }]
+      "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
+      "linebreak-style": "off"
     }
   }],
   "rules": {
     // Add custom rules here
-    "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }]
+    "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
+    "linebreak-style": "off"
     // Other overrides...
   },
   "env": {

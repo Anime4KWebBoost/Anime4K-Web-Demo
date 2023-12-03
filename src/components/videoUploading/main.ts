@@ -8,6 +8,7 @@ import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.
 
 import DeblurPipeline from '../../pipelines/DeblurDoGPipeline';
 import UpscaleCNNPipeline from '../../pipelines/UpscaleCNNPipeline';
+import DenoiseMeanPipeline from '../../pipelines/DenoiseMeanPipeline';
 import { Anime4KPipeline } from '../../pipelines/Anime4KPipeline';
 
 function createFPSCounter(gui: GUI) {
@@ -49,6 +50,7 @@ function setupGUI(
   const effectsController = gui.add(settings, 'Effects', [
     'Upscale',
     'Deblur',
+    'Denoise',
   ]);
 
   effectsController.onChange((value) => {
@@ -216,6 +218,9 @@ const init: SampleInit = async ({
     case 'Deblur':
       customPipeline = new DeblurPipeline(device, videoFrameTexture);
       customPipeline.updateParam('strength', settings.controlValue);
+      break;
+    case 'Denoise':
+      customPipeline = new DenoiseMeanPipeline(device, videoFrameTexture);
       break;
     default:
       console.log('Invalid selection');

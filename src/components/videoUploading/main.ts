@@ -27,6 +27,15 @@ function createFPSCounter(gui: GUI) {
   };
 }
 
+function saveSetting(settings) {
+  for (const key in settings) {
+    const value = settings[key];
+    const valueToStore = typeof value === 'boolean' ? value.toString() : value;
+    localStorage.setItem(key, valueToStore);
+  }
+}
+
+
 function setupGUI(
   gui: GUI,
   settings,
@@ -36,10 +45,11 @@ function setupGUI(
   compareBuffer: GPUBuffer,
   splitRatioBuffer: GPUBuffer,
 ) {
-  gui.add(settings, 'requestFrame', [
-    'requestAnimationFrame',
-    'requestVideoFrameCallback',
-  ]);
+  gui.add(settings, 'requestFrame', ['requestAnimationFrame', 'requestVideoFrameCallback'])
+  .onChange(value => {
+    settings.requestFrame = value;
+    saveSetting(settings);
+  });
 
   const effectsController = gui.add(settings, 'Effects', [
     'Upscale',
@@ -47,13 +57,16 @@ function setupGUI(
   ]);
 
   effectsController.onChange((value) => {
-    localStorage.setItem('selectedEffect', value);
+    settings.Effects = value;
+    saveSetting(settings);
     window.location.reload();
   });
 
   if (settings.Effects === 'Deblur') {
     gui.add(settings, 'controlValue', 0, 50, 0.1).name('Deblur Strength').onChange((value) => {
       if (customPipeline instanceof DeblurPipeline) {
+        settings.controlValue = value;
+        saveSetting(settings);
         customPipeline.updateParam('strength', value);
       }
     });
@@ -108,12 +121,16 @@ function setupGUI(
   gui.add(settings, 'comparisonEnabled')
     .name('Comparison')
     .onChange((value) => {
+      settings.comparisonEnabled = value;
+      saveSetting(settings)
       device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([value ? 1 : 0]));
     });
 
   gui.add(settings, 'splitRatio', 0, 100, 0.1)
     .name('Split Ratio %')
     .onChange((value) => {
+      settings.splitRatio = value;
+      saveSetting(settings)
       device.queue.writeBuffer(splitRatioBuffer, 0, new Float32Array([value / 100]));
     });
 }
@@ -188,13 +205,14 @@ const init: SampleInit = async ({
   // GUI
   const updateFPS = createFPSCounter(gui);
   const settings = {
-    requestFrame: 'requestAnimationFrame',
-    Effects: localStorage.getItem('selectedEffect') || 'Upscale',
-    controlValue: 2,
-    comparisonEnabled: false,
-    splitRatio: 50,
+    requestFrame: localStorage.getItem('requestFrame') || 'requestAnimationFrame',
+    Effects: localStorage.getItem('Effects') || 'Upscale',
+    controlValue: parseFloat(localStorage.getItem('controlValue')) || 2,
+    comparisonEnabled: localStorage.getItem('comparisonEnabled') === 'true',
+    splitRatio: parseFloat(localStorage.getItem('splitRatio')) || 50,
   };
 
+  //initial pipline mode
   let customPipeline: Anime4KPipeline;
   switch (settings.Effects) {
     case 'Upscale':
@@ -202,6 +220,7 @@ const init: SampleInit = async ({
       break;
     case 'Deblur':
       customPipeline = new DeblurPipeline(device, videoFrameTexture);
+      customPipeline.updateParam('strength', settings.controlValue);
       break;
     default:
       console.log('Invalid selection');
@@ -215,10 +234,19 @@ const init: SampleInit = async ({
   const savedRequestFrame = localStorage.getItem('selectedRequestFrame');
   if (savedRequestFrame) settings.requestFrame = savedRequestFrame;
 
-  const savedEffect = localStorage.getItem('selectedEffect');
-  if (savedEffect) settings.Effects = savedEffect;
 
   setupGUI(gui, settings, customPipeline, video, device, compareBuffer, splitRatioBuffer);
+
+
+
+  //initial comparsion setting
+  if (settings.comparisonEnabled) {
+    device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([1]));
+  } else {
+    device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([0]));
+  }
+  device.queue.writeBuffer(splitRatioBuffer, 0, new Float32Array([settings.splitRatio / 100]));
+
 
   // configure final rendering pipeline
   const renderBindGroupLayout = device.createBindGroupLayout({

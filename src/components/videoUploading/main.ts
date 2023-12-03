@@ -10,7 +10,7 @@ import DeblurPipeline from '../../pipelines/DeblurDoGPipeline';
 import UpscaleCNNPipeline from '../../pipelines/UpscaleCNNPipeline';
 import { Anime4KPipeline } from '../../pipelines/Anime4KPipeline';
 
-function createFPSCounter(gui) {
+function createFPSCounter(gui: GUI) {
   let lastFrameTime = Date.now();
   let frameCount = 0;
   const fpsCounter = { fps: 0 };
@@ -34,6 +34,7 @@ function setupGUI(
   video: HTMLVideoElement,
   device: GPUDevice,
   compareBuffer: GPUBuffer,
+  splitRatioBuffer: GPUBuffer,
 ) {
   gui.add(settings, 'requestFrame', [
     'requestAnimationFrame',
@@ -109,6 +110,12 @@ function setupGUI(
     .onChange((value) => {
       device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([value ? 1 : 0]));
     });
+
+  gui.add(settings, 'splitRatio', 0, 100, 0.1)
+    .name('Split Ratio %')
+    .onChange((value) => {
+      device.queue.writeBuffer(splitRatioBuffer, 0, new Float32Array([value / 100]));
+    });
 }
 
 async function configureWebGPU(canvas) {
@@ -172,6 +179,12 @@ const init: SampleInit = async ({
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
+  // bind 4: compare split ratio
+  const splitRatioBuffer = device.createBuffer({
+    size: 4,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
   // GUI
   const updateFPS = createFPSCounter(gui);
   const settings = {
@@ -179,6 +192,7 @@ const init: SampleInit = async ({
     Effects: localStorage.getItem('selectedEffect') || 'Upscale',
     controlValue: 2,
     comparisonEnabled: false,
+    splitRatio: 50,
   };
 
   let customPipeline: Anime4KPipeline;
@@ -195,7 +209,7 @@ const init: SampleInit = async ({
   }
 
   video.addEventListener('loadedmetadata', () => {
-    setupGUI(gui, settings, customPipeline, video, device, compareBuffer);
+    setupGUI(gui, settings, customPipeline, video, device, compareBuffer, splitRatioBuffer);
   });
 
   const savedRequestFrame = localStorage.getItem('selectedRequestFrame');
@@ -204,7 +218,7 @@ const init: SampleInit = async ({
   const savedEffect = localStorage.getItem('selectedEffect');
   if (savedEffect) settings.Effects = savedEffect;
 
-  setupGUI(gui, settings, customPipeline, video, device, compareBuffer);
+  setupGUI(gui, settings, customPipeline, video, device, compareBuffer, splitRatioBuffer);
 
   // configure final rendering pipeline
   const renderBindGroupLayout = device.createBindGroupLayout({
@@ -229,6 +243,11 @@ const init: SampleInit = async ({
         binding: 3,
         visibility: GPUShaderStage.FRAGMENT,
         texture: {},
+      },
+      {
+        binding: 4,
+        visibility: GPUShaderStage.FRAGMENT,
+        buffer: { type: 'uniform' },
       },
     ],
   });
@@ -289,6 +308,12 @@ const init: SampleInit = async ({
       {
         binding: 3,
         resource: videoFrameTexture.createView(),
+      },
+      {
+        binding: 4,
+        resource: {
+          buffer: splitRatioBuffer,
+        },
       },
     ],
   });

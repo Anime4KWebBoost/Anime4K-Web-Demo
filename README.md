@@ -21,10 +21,6 @@ WebGPU Accelerated Anime 4K harnesses WebGPU and GPU compute shaders to rapidly 
 |:-:|
 | <img src="Demo/upscaleDemo.gif" width="800px"> |
 
-
-
-
-
 ## Getting Started
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 

@@ -11,15 +11,15 @@ WebGPU Accelerated Anime 4K harnesses WebGPU and GPU compute shaders to rapidly 
 ## Demo
 | **Deblur Demo** |
 |:-:|
-| <img src="demo/deblurDemo.gif" width="3000px"> |
+| <img src="demo/deblurDemo.gif" width="500px"> |
 
 | **Denoise Demo** |
 |:-:|
-| <img src="demo/denoiseDemo.gif" width="3000px"> |
+| <img src="demo/denoiseDemo.gif" width="500px"> |
 
 | **Upscale Demo** |
 |:-:|
-| <img src="demo/upscaleDemo.gif" width="3000px"> |
+| <img src="demo/upscaleDemo.gif" width="500px"> |
 
 
 

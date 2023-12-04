@@ -104,8 +104,8 @@ const init: SampleInit = async ({
     requestFrame: 'requestAnimationFrame',
     Effects: 'Upscale',
     DeblurControlValue: 2,
-    DenoiseControlValue: 0.5,
-    DenoiseControlValue2: 1,
+    DenoiseControlValue: 0.2,
+    DenoiseControlValue2: 2,
     comparisonEnabled: false,
     splitRatio: 50,
   };
@@ -157,13 +157,13 @@ const init: SampleInit = async ({
       customPipeline.updateParam('strength', value);
     }
   });
-  gui.add(settings, 'DenoiseControlValue', 0.1, 3, 0.1).name('Denoise Itensity Sigma').onChange((value) => {
+  gui.add(settings, 'DenoiseControlValue', 0.1, 2, 0.1).name('Denoise Itensity Sigma').onChange((value) => {
     if (customPipeline instanceof DenoiseMeanPipeline) {
       settings.DenoiseControlValue = value;
       customPipeline.updateParam('strength', value);
     }
   });
-  gui.add(settings, 'DenoiseControlValue2', 0.5, 10, 0.1).name('Denoise Spatial Sigma').onChange((value) => {
+  gui.add(settings, 'DenoiseControlValue2', 0.5, 10, 1).name('Denoise Spatial Sigma').onChange((value) => {
     if (customPipeline instanceof DenoiseMeanPipeline) {
       settings.DenoiseControlValue2 = value;
       customPipeline.updateParam('strength2', value);

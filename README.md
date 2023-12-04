@@ -8,31 +8,37 @@ Authors (alphabetical order with equal contribution):
 ## Description
 WebGPU Accelerated Anime 4K harnesses WebGPU and GPU compute shaders to rapidly enhance anime-style graphics. Leveraging the power of modern GPUs, it executes complex deblurring, CNN-based upscaling, and denoising algorithms in real-time. As a result, each video frame is processed instantaneously, improving clarity, sharpness, and eliminating noise as it streams. This ensures a superior viewing experience with high-quality visuals delivered without interruption, ideal for anime fans and professionals seeking top-notch and efficient image fidelity.
 
+## UI
+<img src="Demo/UI.png" width="800px">
+This is the ui of this demo. 
+
+1. Click "Choose File" to upload video
+2. Select effect from "Effects" drop down menu
+3. Modify related parameters
+4. If want to compare the video before and after applying effects, check the "Comparison" box
+
+
 ## Demo
+Following are comparison of original video and modified video with different effects.
+
 | **Deblur Demo** |
 |:-:|
 | <img src="Demo/deblurDemo.gif" width="800px"> |
+
+Presented here is a demonstration of the deblurring effect, showcasing a side-by-side comparison: the original 360P video is displayed on the left, while the deblurred version is featured on the right. The deblurring strength has been calibrated to a level of 3. As deblurring strength increasing, the effect of deblur is more distinct. This deblurring process enhances the video's clarity by sharpening the image's edges. However, it's important to note that this enhancement may also inadvertently amplify aliasing effects.
 
 | **Denoise Demo** |
 |:-:|
 | <img src="Demo/denoiseDemo.gif" width="800px"> |
 
+The denoise demostration also has the original 720P video on the left side with the denoised one on the right. The intensity sigma is set to 0.2 and the spatial sigma is set to 2. Increasing intensity sigma will make bilateral filter approximat Gaussian convolution, and increasing the spatial sigma will make the color smoother. 
+
 | **Upscale Demo** |
 |:-:|
 | <img src="Demo/upscaleDemo.gif" width="800px"> |
 
-## Getting Started
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+In this demonstration, the video's resolution is enhanced through upscaling. Consequently, the comparison showcases bilinear sampling on the left side versus the upscaled version on the right side. The upscaled version offers better clarity and quality compared to the bilinearly sampled counterpart.
 
-[Instructions for setting up and running the project]
-
-## Learn More
-
-[Additional resources and learning materials for Next.js]
-
-## Deploy on Vercel
-
-[Instructions and details for deploying on Vercel]
 
 ## Analyze
 

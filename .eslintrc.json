@@ -1,3 +1,36 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": ["next/core-web-vitals", "airbnb", "airbnb/hooks", "plugin:@typescript-eslint/recommended"],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "overrides": [{
+    "files": ["src/components/videoUploading/**/*.ts", "src/pipelines/**/*.ts"],
+    "rules": {
+      "no-bitwise": "off",
+      "import/extensions": "off",
+      "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
+      "linebreak-style": "off"
+    }
+  }],
+  "rules": {
+    // Add custom rules here
+    "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
+    "linebreak-style": "off"
+    // Other overrides...
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es6": true
+  }
 }

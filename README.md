@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# WebGPU Accelerated Anime 4K
 
-## Getting Started
+Authors (alphabetical order with equal contribution):
+* Ruijun(Daniel) Zhong [LinkedIn](https://www.linkedin.com/in/daniel-z-73158b152/) | [Personal Website](https://www.danielzhongportfolio.com/)
+* Tong Hu  [LinkedIn](https://www.linkedin.com/in/tong-hu-5819a122a/) 
+* Yuanqi Wang [LinkedIn](https://www.linkedin.com/in/yuanqi-wang-414b26106/) | [GitHub](https://github.com/plasmas)
 
-First, run the development server:
+## Description
+WebGPU Accelerated Anime 4K harnesses WebGPU and GPU compute shaders to rapidly enhance anime-style graphics. Leveraging the power of modern GPUs, it executes complex deblurring, CNN-based upscaling, and denoising algorithms in real-time. As a result, each video frame is processed instantaneously, improving clarity, sharpness, and eliminating noise as it streams. This ensures a superior viewing experience with high-quality visuals delivered without interruption, ideal for anime fans and professionals seeking top-notch and efficient image fidelity.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## UI
+<img src="Demo/UI.png" width="800px">
+This is the ui of this demo. 
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Click "Choose File" to upload video
+2. Select effect from "Effects" drop down menu
+3. Modify related parameters
+4. If want to compare the video before and after applying effects, check the "Comparison" box
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Demo
+Following are comparison of original video and modified video with different effects.
 
-## Learn More
+| **Deblur Demo** |
+|:-:|
+| <img src="Demo/deblurDemo.gif" width="800px"> |
 
-To learn more about Next.js, take a look at the following resources:
+Presented here is a demonstration of the deblurring effect, showcasing a side-by-side comparison: the original 360P video is displayed on the left, while the deblurred version is featured on the right. The deblurring strength has been calibrated to a level of 3. As deblurring strength increasing, the effect of deblur is more distinct. This deblurring process enhances the video's clarity by sharpening the image's edges. However, it's important to note that this enhancement may also inadvertently amplify aliasing effects.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| **Denoise Demo** |
+|:-:|
+| <img src="Demo/denoiseDemo.gif" width="800px"> |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+The denoise demostration also has the original 720P video on the left side with the denoised one on the right. The intensity sigma is set to 0.2 and the spatial sigma is set to 2. Increasing intensity sigma will make bilateral filter approximat Gaussian convolution, and increasing the spatial sigma will make the color smoother. 
 
-## Deploy on Vercel
+| **Upscale Demo** |
+|:-:|
+| <img src="Demo/upscaleDemo.gif" width="800px"> |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+In this demonstration, the video's resolution is enhanced through upscaling. Consequently, the comparison showcases bilinear sampling on the left side versus the upscaled version on the right side. The upscaled version offers better clarity and quality compared to the bilinearly sampled counterpart.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+## Analyze
+
+TODO
+
+## Reference
+This project references a variety of resources:
+
+- **Anime4K**
+  - GitHub Repository: [Anime4K](https://github.com/bloc97/Anime4K)
+  - Unity Implementation: [Anime4K Unity](https://github.com/keijiro/UnityAnime4K)
+
+- **StyleRF**
+  - Research Paper: [StyleRF: Zero-shot 3D Style Transfer of Neural Radiance Fields](https://arxiv.org/pdf/2303.10598.pdf)
+
+- **WebGPU**
+  - Tutorial: [Your First WebGPU App](https://codelabs.developers.google.com/your-first-webgpu-app#0)
+  - Base Code: [WebGPU Samples](https://github.com/webgpu/webgpu-samples)
+
+- **Multimedia Demonstrations**
+  - Demo Video (One Punch Man): [YouTube Video](https://www.youtube.com/watch?v=km2OPUctni4&list=LL&index=1&t=13s)
+  - Demo Pictures: [Flickr Photos](https://www.flickr.com/photos/sunshinetoday168/50383058796)
+  - Denoise Demo Video: [YouTube Denoise Demo](https://www.youtube.com/watch?v=CNenVlc1L2w)
+
+- **Additional Resources**
+  - Process Diagrams: [ProcessOn Diagrams](https://www.processon.com/diagrams)
+
+All trademarks and registered trademarks are the property of their respective owners. This list is intended for informational and educational purposes only.

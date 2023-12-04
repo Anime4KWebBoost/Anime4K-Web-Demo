@@ -26,7 +26,7 @@ fn computeMain(@builtin(global_invocation_id) pixel: vec3u) {
 
 
   let BLUR_CURVE: f32 = strength;
-  let BLUR_THRESHOLD: f32 = 0.1;
+  let BLUR_THRESHOLD: f32 = 0.5;
   let NOISE_THRESHOLD: f32 = 0.001;
 
   let luma: vec4f = lumAt(pos.x, pos.y);

@@ -76,7 +76,7 @@ function setupGUI(
   });
 
   if (settings.Effects === 'Deblur') {
-    gui.add(settings, 'DeblurControlValue', 0.1, 50, 0.1).name('Strength').onChange((value) => {
+    gui.add(settings, 'DeblurControlValue', 0.1, 15, 0.1).name('Strength').onChange((value) => {
       if (customPipeline instanceof DeblurPipeline) {
         settings.DeblurControlValue = value;
         saveSetting(settings);

@@ -6,8 +6,8 @@
 }
 
 .canvasContainer>canvas {
-  width: 80%;
-  height: auto;
+  /* width: 80%;
+  height: auto; */
   /* aspect-ratio: 1; */
   /* max-width: 600px; */
 }

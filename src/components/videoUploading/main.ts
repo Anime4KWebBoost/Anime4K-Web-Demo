@@ -148,14 +148,11 @@ function setupGUI(
     });
 }
 
-async function configureWebGPU(canvas) {
+async function configureWebGPU(canvas: HTMLCanvasElement) {
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
 
   const context = canvas.getContext('webgpu') as GPUCanvasContext;
-  const { devicePixelRatio } = window;
-  canvas.width = canvas.clientWidth * devicePixelRatio;
-  canvas.height = canvas.clientHeight * devicePixelRatio;
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
   context.configure({
@@ -191,8 +188,7 @@ const init: SampleInit = async ({
 
   const WIDTH = video.videoWidth;
   const HEIGHT = video.videoHeight;
-  const aspectRatio = HEIGHT / WIDTH;
-  canvas.style.height = `calc(80vw * ${aspectRatio})`;
+  const { devicePixelRatio } = window;
 
   if (!pageState.active) return;
 
@@ -256,6 +252,12 @@ const init: SampleInit = async ({
       console.log('Invalid selection');
       break;
   }
+
+  // setting canvas dimensions
+  canvas.width = customPipeline.getOutputTexture().width * devicePixelRatio;
+  canvas.height = customPipeline.getOutputTexture().height * devicePixelRatio;
+  canvas.style.width = `${customPipeline.getOutputTexture().width}px`;
+  canvas.style.height = `${customPipeline.getOutputTexture().height}px`;
 
   // if (settings.upscaleEffect === true) {
   //   console.log('upscaleEffect');

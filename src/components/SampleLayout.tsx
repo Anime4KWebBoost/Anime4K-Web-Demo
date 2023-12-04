@@ -107,7 +107,7 @@ const SampleLayout: React.FunctionComponent<
     <main>
       <div>
         <h1>{props.name}</h1>
-        <p>{props.description}</p>
+        <p>Check out our repository: <a href="https://github.com/Anime4KWebBoost/Anime4K-WebGPU" target="_blank">Anime4K-WebGPU</a>.</p>
         {error ? (
           <>
             <p>

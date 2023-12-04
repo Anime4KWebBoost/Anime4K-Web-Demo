@@ -53,6 +53,21 @@ function setupGUI(
     'Denoise',
   ]);
 
+  // gui.add(settings, 'upscaleEffect').name('Upscale').onChange((value) => {
+  //   settings.upscaleEffect = value;
+  //   localStorage.setItem('upscaleEffect', value.toString());
+  // });
+
+  // gui.add(settings, 'deblurEffect').name('Deblur').onChange((value) => {
+  //   settings.deblurEffect = value;
+  //   localStorage.setItem('deblurEffect', value.toString());
+  // });
+
+  // gui.add(settings, 'denoiseEffect').name('Denoise').onChange((value) => {
+  //   settings.denoiseEffect = value;
+  //   localStorage.setItem('denoiseEffect', value.toString());
+  // });
+
   effectsController.onChange((value) => {
     settings.Effects = value;
     saveSetting(settings);
@@ -216,6 +231,9 @@ const init: SampleInit = async ({
   const settings = {
     requestFrame: localStorage.getItem('requestFrame') || 'requestAnimationFrame',
     Effects: localStorage.getItem('Effects') || 'Upscale',
+    // upscaleEffect: localStorage.getItem('upscaleEffect') === 'true' || false,
+    // deblurEffect: localStorage.getItem('deblurEffect') === 'true' || false,
+    // denoiseEffect: localStorage.getItem('denoiseEffect') === 'true' || false,
     controlValue: parseFloat(localStorage.getItem('controlValue')) || 2,
     comparisonEnabled: localStorage.getItem('comparisonEnabled') === 'true',
     splitRatio: parseFloat(localStorage.getItem('splitRatio')) || 50,
@@ -238,6 +256,16 @@ const init: SampleInit = async ({
       console.log('Invalid selection');
       break;
   }
+
+  // if (settings.upscaleEffect === true) {
+  //   console.log('upscaleEffect');
+  // }
+  // if (settings.deblurEffect === true) {
+  //   console.log('deblurEffect');
+  // }
+  // if (settings.denoiseEffect === true) {
+  //   console.log('denoiseEffect');
+  // }
 
   video.addEventListener('loadedmetadata', () => {
     setupGUI(gui, settings, customPipeline, video, device, compareBuffer, splitRatioBuffer);
@@ -404,7 +432,7 @@ const init: SampleInit = async ({
 
 const VideoUploading: () => JSX.Element = () => makeSample({
   name: 'WebGPU Accelerated Anime 4K Upscaling',
-  description: 'Team: Yuanqi Wang, Tong Hu, Daniel Zhong',
+  description: '',
   gui: true,
   init,
   filename: __filename,

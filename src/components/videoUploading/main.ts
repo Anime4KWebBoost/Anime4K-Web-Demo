@@ -76,11 +76,28 @@ function setupGUI(
   });
 
   if (settings.Effects === 'Deblur') {
-    gui.add(settings, 'controlValue', 0, 50, 0.1).name('Deblur Strength').onChange((value) => {
+    gui.add(settings, 'DeblurControlValue', 0.1, 50, 0.1).name('Strength').onChange((value) => {
       if (customPipeline instanceof DeblurPipeline) {
-        settings.controlValue = value;
+        settings.DeblurControlValue = value;
         saveSetting(settings);
         customPipeline.updateParam('strength', value);
+      }
+    });
+  }
+
+  if (settings.Effects === 'Denoise') {
+    gui.add(settings, 'DenoiseControlValue', 0.1, 3, 0.1).name('Itensity Sigma').onChange((value) => {
+      if (customPipeline instanceof DenoiseMeanPipeline) {
+        settings.DenoiseControlValue = value;
+        saveSetting(settings);
+        customPipeline.updateParam('strength', value);
+      }
+    });
+    gui.add(settings, 'DenoiseControlValue2', 0.5, 10, 0.1).name('spatial Sigma').onChange((value) => {
+      if (customPipeline instanceof DenoiseMeanPipeline) {
+        settings.DenoiseControlValue2 = value;
+        saveSetting(settings);
+        customPipeline.updateParam('strength2', value);
       }
     });
   }
@@ -230,7 +247,9 @@ const init: SampleInit = async ({
     // upscaleEffect: localStorage.getItem('upscaleEffect') === 'true' || false,
     // deblurEffect: localStorage.getItem('deblurEffect') === 'true' || false,
     // denoiseEffect: localStorage.getItem('denoiseEffect') === 'true' || false,
-    controlValue: parseFloat(localStorage.getItem('controlValue')) || 2,
+    DeblurControlValue: parseFloat(localStorage.getItem('DeblurControlValue')) || 2,
+    DenoiseControlValue: parseFloat(localStorage.getItem('DenoiseControlValue')) || 0.5,
+    DenoiseControlValue2: parseFloat(localStorage.getItem('DenoiseControlValue2')) || 1,
     comparisonEnabled: localStorage.getItem('comparisonEnabled') === 'true',
     splitRatio: parseFloat(localStorage.getItem('splitRatio')) || 50,
   };
@@ -243,10 +262,12 @@ const init: SampleInit = async ({
       break;
     case 'Deblur':
       customPipeline = new DeblurPipeline(device, videoFrameTexture);
-      customPipeline.updateParam('strength', settings.controlValue);
+      customPipeline.updateParam('strength', settings.DeblurControlValue);
       break;
     case 'Denoise':
       customPipeline = new DenoiseMeanPipeline(device, videoFrameTexture);
+      customPipeline.updateParam('strength', settings.DenoiseControlValue);
+      customPipeline.updateParam('strength2', settings.DenoiseControlValue2);
       break;
     default:
       console.log('Invalid selection');

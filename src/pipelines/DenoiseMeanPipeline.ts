@@ -16,6 +16,8 @@ export default class DenoiseMeanPipeline implements Anime4KPipeline {
 
   strengthBuffer: GPUBuffer;
 
+  strengthBuffer2: GPUBuffer;
+
   inputTexWidth: number;
 
   inputTexHeight: number;
@@ -50,6 +52,16 @@ export default class DenoiseMeanPipeline implements Anime4KPipeline {
           access: 'write-only',
           format: 'rgba16float',
         },
+      },
+      {
+        binding: 2,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: 'uniform' },
+      },
+      {
+        binding: 3,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: 'uniform' },
       }],
     });
 
@@ -57,6 +69,16 @@ export default class DenoiseMeanPipeline implements Anime4KPipeline {
       size: [this.inputTexWidth, this.inputTexHeight, 1],
       format: 'rgba16float',
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
+    });
+
+    this.strengthBuffer = device.createBuffer({
+      size: 4,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    this.strengthBuffer2 = device.createBuffer({
+      size: 4,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
     const denoiseMeanBindGroup = this.device.createBindGroup({
@@ -69,6 +91,18 @@ export default class DenoiseMeanPipeline implements Anime4KPipeline {
         {
           binding: 1,
           resource: denoiseMeanTexture.createView(),
+        },
+        {
+          binding: 2,
+          resource: {
+            buffer: this.strengthBuffer,
+          },
+        },
+        {
+          binding: 3,
+          resource: {
+            buffer: this.strengthBuffer2,
+          },
         },
       ],
     });
@@ -112,6 +146,19 @@ export default class DenoiseMeanPipeline implements Anime4KPipeline {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   updateParam(param: string, value): void {
-    throw new Error(`${this.constructor.name} has no param`);
+    if (param !== 'strength' && param !== 'strength2') {
+      throw new Error(`No param name as ${param}`);
+    }
+    if (typeof value !== 'number') {
+      throw new Error('strength must be a number');
+    }
+    if (value < 0) {
+      throw new Error(`negative strength (${value}) is not allowed`);
+    }
+    if (param === 'strength') {
+      this.device.queue.writeBuffer(this.strengthBuffer, 0, new Float32Array([value]));
+    } else if (param === 'strength2') {
+      this.device.queue.writeBuffer(this.strengthBuffer2, 0, new Float32Array([value]));
+    }
   }
 }

@@ -1,5 +1,7 @@
 @group(0) @binding(0) var tex_in: texture_2d<f32>;
 @group(0) @binding(1) var tex_out: texture_storage_2d<rgba16float, write>;
+@group(0) @binding(2) var<uniform> strength: f32;
+@group(0) @binding(3) var<uniform> strength2: f32;
 
 fn gaussianVec(x: vec4f, s: vec4f, m: vec4f) -> vec4f {
   let scaled = (x - m) / s;
@@ -28,9 +30,9 @@ fn denoiseMain(@builtin(global_invocation_id) pixel: vec3u) {
 
   // constants
   // Intensity window size, higher is stronger denoise, must be a positive real number
-  let intensitySigma: f32 = 0.1;
+  let intensitySigma: f32 = strength;
   // Spatial window size, higher is stronger denoise, must be a positive real number.
-  let spatialSigma: f32 = 1.0;
+  let spatialSigma: f32 = strength2;
   // Intensity window power curve.
   //    Setting it to 0 will make the intensity window treat all intensities equally, 
   //    while increasing it will make the window narrower in darker intensities and 

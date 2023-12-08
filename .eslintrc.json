@@ -25,7 +25,8 @@
   "rules": {
     // Add custom rules here
     "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
-    "linebreak-style": "off"
+    "linebreak-style": "off",
+    "import/no-extraneous-dependencies": "off"
     // Other overrides...
   },
   "env": {

@@ -1,14 +1,18 @@
 /* eslint-disable no-console */
 /* eslint-disable no-param-reassign */
+import {
+  Anime4KPipeline, UpscaleCNN, DoG, BilateralMean,
+} from 'anime4k-webgpu';
+
 import { makeSample, SampleInit } from '../SampleLayout';
 
 import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgsl';
 import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
 
-import DeblurPipeline from '../../pipelines/DeblurDoGPipeline';
-import UpscaleCNNPipeline from '../../pipelines/UpscaleCNNPipeline';
-import DenoiseMeanPipeline from '../../pipelines/DenoiseMeanPipeline';
-import { Anime4KPipeline } from '../../pipelines/Anime4KPipeline';
+// import DeblurPipeline from '../../pipelines/DeblurDoGPipeline';
+// import UpscaleCNNPipeline from '../../pipelines/UpscaleCNNPipeline';
+// import DenoiseMeanPipeline from '../../pipelines/DenoiseMeanPipeline';
+// import { Anime4KPipeline } from '../../pipelines/Anime4KPipeline';
 
 type Settings = {
   requestFrame: string;
@@ -115,14 +119,14 @@ const init: SampleInit = async ({
   function updatePipeline() {
     switch (settings.Effects) {
       case 'Upscale':
-        customPipeline = new UpscaleCNNPipeline(device, videoFrameTexture);
+        customPipeline = new UpscaleCNN(device, videoFrameTexture);
         break;
       case 'Deblur':
-        customPipeline = new DeblurPipeline(device, videoFrameTexture);
+        customPipeline = new DoG(device, videoFrameTexture);
         customPipeline.updateParam('strength', settings.DeblurControlValue);
         break;
       case 'Denoise':
-        customPipeline = new DenoiseMeanPipeline(device, videoFrameTexture);
+        customPipeline = new BilateralMean(device, videoFrameTexture);
         customPipeline.updateParam('strength', settings.DenoiseControlValue);
         customPipeline.updateParam('strength2', settings.DenoiseControlValue2);
         break;
@@ -152,19 +156,19 @@ const init: SampleInit = async ({
   ]);
 
   gui.add(settings, 'DeblurControlValue', 0.1, 15, 0.1).name('Deblur Strength').onChange((value) => {
-    if (customPipeline instanceof DeblurPipeline) {
+    if (customPipeline instanceof DoG) {
       settings.DeblurControlValue = value;
       customPipeline.updateParam('strength', value);
     }
   });
   gui.add(settings, 'DenoiseControlValue', 0.1, 2, 0.1).name('Denoise Itensity Sigma').onChange((value) => {
-    if (customPipeline instanceof DenoiseMeanPipeline) {
+    if (customPipeline instanceof BilateralMean) {
       settings.DenoiseControlValue = value;
       customPipeline.updateParam('strength', value);
     }
   });
   gui.add(settings, 'DenoiseControlValue2', 0.5, 10, 1).name('Denoise Spatial Sigma').onChange((value) => {
-    if (customPipeline instanceof DenoiseMeanPipeline) {
+    if (customPipeline instanceof BilateralMean) {
       settings.DenoiseControlValue2 = value;
       customPipeline.updateParam('strength2', value);
     }

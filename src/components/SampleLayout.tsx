@@ -49,7 +49,7 @@ const SampleLayout: React.FunctionComponent<
     return undefined;
   }, []);
 
-  const [videoURL, setVideoURL] = useState('../assets/video/FinalDemo1.mp4');
+  const [videoURL, setVideoURL] = useState('../assets/image/test3.jpg');
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -134,7 +134,7 @@ const SampleLayout: React.FunctionComponent<
         ></div>
         <canvas ref={canvasRef}></canvas>
       </div>
-      <input type="file" accept="video/*" onChange={handleFileChange} />
+      <input type="file" accept="*" onChange={handleFileChange} />
     </main>
   );
 };

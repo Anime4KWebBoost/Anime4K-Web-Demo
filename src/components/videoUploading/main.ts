@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable no-param-reassign */
 import {
-  Anime4KPipeline, UpscaleCNN, DoG, BilateralMean, GANx3L, CNNx2UL,
+  Anime4KPipeline, UpscaleCNN, DoG, BilateralMean, GANx3L,
 } from 'anime4k-webgpu';
 
 import { makeSample, SampleInit } from '../SampleLayout';
@@ -43,37 +43,54 @@ async function configureWebGPU(canvas: HTMLCanvasElement) {
 const init: SampleInit = async ({
   canvas, pageState, gui, videoURL,
 }) => {
-  // Set video element
-  const video = document.createElement('video');
-  video.loop = true;
-  video.autoplay = true;
-  video.muted = true;
-  video.src = videoURL;
-
-  await video.play();
-
-  const WIDTH = video.videoWidth;
-  const HEIGHT = video.videoHeight;
-  const { devicePixelRatio } = window;
-
+  // Declare video and updateVideoFrameTexture
+  let video;
+  let updateVideoFrameTexture;
+  let videoFrameTexture;
   if (!pageState.active) return;
 
   const { device, context, presentationFormat } = await configureWebGPU(canvas);
 
-  const videoFrameTexture = device.createTexture({
-    size: [WIDTH, HEIGHT, 1],
-    format: 'rgba16float',
-    usage: GPUTextureUsage.TEXTURE_BINDING
-    | GPUTextureUsage.COPY_DST
-    | GPUTextureUsage.RENDER_ATTACHMENT,
-  });
+  // Check if the URL is a video format
+  const isVideo = videoURL.endsWith('.mp4') || videoURL.endsWith('.webm');
 
-  function updateVideoFrameTexture() {
-    device.queue.copyExternalImageToTexture(
-      { source: video },
-      { texture: videoFrameTexture },
-      [WIDTH, HEIGHT],
-    );
+  if (isVideo) {
+    // Video logic
+    video = document.createElement('video');
+    video.loop = true;
+    video.autoplay = true;
+    video.muted = true;
+    video.src = videoURL;
+
+    await video.play();
+
+    const WIDTH = video.videoWidth;
+    const HEIGHT = video.videoHeight;
+
+    videoFrameTexture = device.createTexture({
+      size: [WIDTH, HEIGHT, 1],
+      format: 'rgba16float',
+      usage: GPUTextureUsage.TEXTURE_BINDING
+      | GPUTextureUsage.COPY_DST
+      | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+
+    updateVideoFrameTexture = () => {
+      device.queue.copyExternalImageToTexture(
+        { source: video },
+        { texture: videoFrameTexture },
+        [WIDTH, HEIGHT],
+      );
+    };
+  } else {
+    // Texture logic
+    const imgBitmap = await createImageBitmap(await (await fetch(videoURL)).blob());
+    videoFrameTexture = device.createTexture({
+      size: [imgBitmap.width, imgBitmap.height, 1],
+      format: 'rgba8unorm',
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture: videoFrameTexture }, [imgBitmap.width, imgBitmap.height]);
   }
 
   // bind 2: compare
@@ -119,7 +136,7 @@ const init: SampleInit = async ({
   function updatePipeline() {
     switch (settings.Effects) {
       case 'Upscale':
-        customPipeline = new CNNx2UL(device, videoFrameTexture);
+        customPipeline = new GANx3L(device, videoFrameTexture);
         break;
       case 'Deblur':
         customPipeline = new DoG(device, videoFrameTexture);
@@ -203,13 +220,14 @@ const init: SampleInit = async ({
     },
   };
 
-  video.addEventListener('timeupdate', () => {
-    if (isUserInteracting) {
-      videoProgress.time = video.currentTime;
-    }
-  });
+  if(isVideo){
+    video.addEventListener('timeupdate', () => {
+      if (isUserInteracting) {
+        videoProgress.time = video.currentTime;
+      }
+    });
 
-  gui.add(videoProgress, 'time', 0, video.duration, 0.1)
+    gui.add(videoProgress, 'time', 0, video.duration, 0.1)
     .name('Video Progress')
     .listen()
     .onChange(() => {
@@ -219,6 +237,11 @@ const init: SampleInit = async ({
     .onFinishChange(() => {
       isUserInteracting = false;
     });
+  }
+  
+
+ 
+  
 
   gui.add(settings, 'comparisonEnabled')
     .name('Comparison')
@@ -354,10 +377,13 @@ const init: SampleInit = async ({
 
   function frame() {
     // fetch a new frame from video element into texture
-    if (!video.paused) {
-      // fetch a new frame from video element into texture
-      updateVideoFrameTexture();
+    if(isVideo){
+      if (!video.paused) {
+        // fetch a new frame from video element into texture
+        updateVideoFrameTexture();
+      }
     }
+    
 
     updateFPS();
 

@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable no-param-reassign */
 import {
-  Anime4KPipeline, UpscaleCNN, DoG, BilateralMean, GANx3L,
+  Anime4KPipeline, UpscaleCNN, DoG, BilateralMean, GANx3L, GANUUL, CNNx2UL,
 } from 'anime4k-webgpu';
 
 import { makeSample, SampleInit } from '../SampleLayout';
@@ -39,6 +39,7 @@ async function configureWebGPU(canvas: HTMLCanvasElement) {
 
   return { device, context, presentationFormat };
 }
+
 
 const init: SampleInit = async ({
   canvas, pageState, gui, videoURL,
@@ -136,7 +137,7 @@ const init: SampleInit = async ({
   function updatePipeline() {
     switch (settings.Effects) {
       case 'Upscale':
-        customPipeline = new GANx3L(device, videoFrameTexture);
+        customPipeline = new GANUUL(device, videoFrameTexture);
         break;
       case 'Deblur':
         customPipeline = new DoG(device, videoFrameTexture);
@@ -171,6 +172,19 @@ const init: SampleInit = async ({
     'Deblur',
     'Denoise',
   ]);
+  function downloadCanvasAsImage() {
+    const downloadLink = document.createElement('a');
+    downloadLink.setAttribute('download', 'CanvasImage.png');
+  
+    // Convert canvas content to data URL
+    canvas.toBlob(function(blob) {
+      const url = URL.createObjectURL(blob);
+      downloadLink.setAttribute('href', url);
+      downloadLink.click();
+    }, 'image/png');
+  }
+  
+  gui.add({ downloadCanvasAsImage }, 'downloadCanvasAsImage').name('Download Canvas');
 
   gui.add(settings, 'DeblurControlValue', 0.1, 15, 0.1).name('Deblur Strength').onChange((value) => {
     if (customPipeline instanceof DoG) {

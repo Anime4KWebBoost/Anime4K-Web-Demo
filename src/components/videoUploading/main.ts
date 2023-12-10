@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable no-param-reassign */
 import {
-  Anime4KPipeline, UpscaleCNN, DoG, BilateralMean,
+  Anime4KPipeline, UpscaleCNN, DoG, BilateralMean, GANx3L, CNNx2UL,
 } from 'anime4k-webgpu';
 
 import { makeSample, SampleInit } from '../SampleLayout';
@@ -119,7 +119,7 @@ const init: SampleInit = async ({
   function updatePipeline() {
     switch (settings.Effects) {
       case 'Upscale':
-        customPipeline = new UpscaleCNN(device, videoFrameTexture);
+        customPipeline = new CNNx2UL(device, videoFrameTexture);
         break;
       case 'Deblur':
         customPipeline = new DoG(device, videoFrameTexture);

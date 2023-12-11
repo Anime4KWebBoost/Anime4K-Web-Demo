@@ -14,6 +14,7 @@ WebGPU Accelerated Anime 4K harnesses WebGPU and GPU compute shaders to rapidly 
 Explore the [Anime4K-WebGPU Package](https://github.com/Anime4KWebBoost/Anime4K-WebGPU)  for additional examples.
 
 <img src="Demo/Demo.gif" width="800px">
+<img src="Demo/Demo2.gif" width="800px">
 
 ## Tutorial
 <img src="Demo/UI1.png" width="800px">

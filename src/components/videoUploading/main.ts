@@ -1,7 +1,24 @@
+/* eslint-disable consistent-return */
+/* eslint-disable guard-for-in */
+/* eslint-disable no-restricted-syntax */
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-console */
 /* eslint-disable no-param-reassign */
 import {
-  Anime4KPipeline, UpscaleCNN, DoG, BilateralMean, GANx3L, CNNx2UL,
+  Anime4KPipeline, // Interface
+  // original
+  Original,
+  // deblur
+  DoG,
+  // denoise
+  BilateralMean,
+  // Upscale
+  GANx3L,
+  CNNx2UL,
+  GANx4UUL,
+  // Restore
+  CNNUL,
+  GANUUL,
 } from 'anime4k-webgpu';
 
 import { makeSample, SampleInit } from '../SampleLayout';
@@ -9,18 +26,13 @@ import { makeSample, SampleInit } from '../SampleLayout';
 import fullscreenTexturedQuadWGSL from '../../shaders/fullscreenTexturedQuad.wgsl';
 import sampleExternalTextureWGSL from '../../shaders/sampleExternalTexture.frag.wgsl';
 
-// import DeblurPipeline from '../../pipelines/DeblurDoGPipeline';
-// import UpscaleCNNPipeline from '../../pipelines/UpscaleCNNPipeline';
-// import DenoiseMeanPipeline from '../../pipelines/DenoiseMeanPipeline';
-// import { Anime4KPipeline } from '../../pipelines/Anime4KPipeline';
-
 type Settings = {
   requestFrame: string;
-  Effects: string;
-  DeblurControlValue: number;
-  DenoiseControlValue: number;
-  DenoiseControlValue2: number;
-  comparisonEnabled: boolean;
+  effect: string;
+  deblurCoef: number;
+  denoiseCoef: number;
+  denoiseCoef2: number;
+  compareOn: boolean;
   splitRatio: number;
 };
 
@@ -41,8 +53,9 @@ async function configureWebGPU(canvas: HTMLCanvasElement) {
 }
 
 const init: SampleInit = async ({
-  canvas, pageState, gui, videoURL,
+  canvas, pageState, gui, videoURL, stats, imageURL,
 }) => {
+  stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
   // Set video element
   const video = document.createElement('video');
   video.loop = true;
@@ -52,6 +65,12 @@ const init: SampleInit = async ({
 
   await video.play();
 
+  let imgBitmap = null;
+  if (imageURL) {
+    // Texture logic
+    imgBitmap = await createImageBitmap(await (await fetch(imageURL)).blob());
+  }
+
   const WIDTH = video.videoWidth;
   const HEIGHT = video.videoHeight;
   const { devicePixelRatio } = window;
@@ -60,20 +79,39 @@ const init: SampleInit = async ({
 
   const { device, context, presentationFormat } = await configureWebGPU(canvas);
 
-  const videoFrameTexture = device.createTexture({
-    size: [WIDTH, HEIGHT, 1],
-    format: 'rgba16float',
-    usage: GPUTextureUsage.TEXTURE_BINDING
-    | GPUTextureUsage.COPY_DST
-    | GPUTextureUsage.RENDER_ATTACHMENT,
-  });
+  let videoFrameTexture: GPUTexture;
+  if (imageURL) {
+    videoFrameTexture = device.createTexture({
+      size: [imgBitmap.width, imgBitmap.height, 1],
+      format: 'rgba8unorm',
+      usage: GPUTextureUsage.TEXTURE_BINDING
+      | GPUTextureUsage.COPY_DST
+      | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+  } else {
+    videoFrameTexture = device.createTexture({
+      size: [WIDTH, HEIGHT, 1],
+      format: 'rgba16float',
+      usage: GPUTextureUsage.TEXTURE_BINDING
+      | GPUTextureUsage.COPY_DST
+      | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+  }
 
   function updateVideoFrameTexture() {
-    device.queue.copyExternalImageToTexture(
-      { source: video },
-      { texture: videoFrameTexture },
-      [WIDTH, HEIGHT],
-    );
+    if (imageURL) {
+      device.queue.copyExternalImageToTexture(
+        { source: imgBitmap },
+        { texture: videoFrameTexture },
+        [imgBitmap.width, imgBitmap.height],
+      );
+    } else {
+      device.queue.copyExternalImageToTexture(
+        { source: video },
+        { texture: videoFrameTexture },
+        [WIDTH, HEIGHT],
+      );
+    }
   }
 
   // bind 2: compare
@@ -105,30 +143,55 @@ const init: SampleInit = async ({
   }
 
   const settings: Settings = {
-    requestFrame: 'requestAnimationFrame',
-    Effects: 'Upscale',
-    DeblurControlValue: 2,
-    DenoiseControlValue: 0.2,
-    DenoiseControlValue2: 2,
-    comparisonEnabled: false,
+    requestFrame: 'requestVideoFrameCallback',
+    effect: 'Original',
+    deblurCoef: 2,
+    denoiseCoef: 0.2,
+    denoiseCoef2: 2,
+    compareOn: false,
     splitRatio: 50,
   };
 
   // initial pipline mode
   let customPipeline: Anime4KPipeline;
   function updatePipeline() {
-    switch (settings.Effects) {
-      case 'Upscale':
+    switch (settings.effect) {
+      case 'Original':
+        customPipeline = new Original(videoFrameTexture);
+        break;
+      case 'Deblur-DoG':
+        customPipeline = new DoG(device, videoFrameTexture);
+        try {
+          customPipeline.updateParam('strength', settings.deblurCoef);
+        } catch (e) {
+          console.log(e);
+        }
+        break;
+      case 'Denoise-BilateralMean':
+        customPipeline = new BilateralMean(device, videoFrameTexture);
+        try {
+          customPipeline.updateParam('strength', settings.denoiseCoef);
+          customPipeline.updateParam('strength2', settings.denoiseCoef2);
+        } catch (e) {
+          console.log(e);
+        }
+        break;
+      // Upscale
+      case 'Upscale-GANx3L':
+        customPipeline = new GANx3L(device, videoFrameTexture);
+        break;
+      case 'Upscale-CNNx2UL':
         customPipeline = new CNNx2UL(device, videoFrameTexture);
         break;
-      case 'Deblur':
-        customPipeline = new DoG(device, videoFrameTexture);
-        customPipeline.updateParam('strength', settings.DeblurControlValue);
+      case 'Upscale-GANx4UUL':
+        customPipeline = new GANx4UUL(device, videoFrameTexture);
         break;
-      case 'Denoise':
-        customPipeline = new BilateralMean(device, videoFrameTexture);
-        customPipeline.updateParam('strength', settings.DenoiseControlValue);
-        customPipeline.updateParam('strength2', settings.DenoiseControlValue2);
+      // Restore
+      case 'Restore-CNNUL':
+        customPipeline = new CNNUL(device, videoFrameTexture);
+        break;
+      case 'Restore-GANUUL':
+        customPipeline = new GANUUL(device, videoFrameTexture);
         break;
       default:
         console.log('Invalid selection');
@@ -146,49 +209,96 @@ const init: SampleInit = async ({
   }
   updateCanvasSize();
 
-  gui.add(settings, 'requestFrame', ['requestAnimationFrame', 'requestVideoFrameCallback'])
-    .onChange((value) => { settings.requestFrame = value; });
+  for (const folder in gui.__folders) {
+    gui.removeFolder(gui.__folders[folder]);
+  }
+  while (gui.__controllers.length > 0) {
+    gui.__controllers[0].remove();
+  }
+  const generalFolder = gui.addFolder('General');
+  // if (!imageURL) {
+  //   generalFolder.add(
+  //     settings,
+  //     'requestFrame',
+  //     ['requestAnimationFrame', 'requestVideoFrameCallback'],
+  //   )
+  //     .name('Request Frame');
+  // }
+  const effectController = generalFolder.add(
+    settings,
+    'effect',
+    [
+      'Original',
+      'Deblur-DoG',
+      'Denoise-BilateralMean',
+      // Upscale
+      'Upscale-GANx3L',
+      'Upscale-CNNx2UL',
+      'Upscale-GANx4UUL',
+      // Restore
+      'Restore-CNNUL',
+      'Restore-GANUUL',
+    ],
+  )
+    .name('Effect');
 
-  const effectController = gui.add(settings, 'Effects', [
-    'Upscale',
-    'Deblur',
-    'Denoise',
-  ]);
+  function downloadCanvasAsImage() {
+    const downloadLink = document.createElement('a');
+    downloadLink.setAttribute('download', 'CanvasImage.png');
+    console.log('download canvas of size', canvas.width, canvas.height);
 
-  gui.add(settings, 'DeblurControlValue', 0.1, 15, 0.1).name('Deblur Strength').onChange((value) => {
-    if (customPipeline instanceof DoG) {
-      settings.DeblurControlValue = value;
+    // Convert canvas content to data URL
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      downloadLink.setAttribute('href', url);
+      downloadLink.click();
+    }, 'image/png');
+  }
+
+  generalFolder.add({ downloadCanvasAsImage }, 'downloadCanvasAsImage').name('Download Canvas');
+
+  // Effect Settings
+  const deblurFolder = gui.addFolder('Deblur');
+  deblurFolder.add(settings, 'deblurCoef', 0.1, 15, 0.1).name('Strength').onChange((value) => {
+    try {
       customPipeline.updateParam('strength', value);
+    } catch (e) {
+      console.log(e);
     }
   });
-  gui.add(settings, 'DenoiseControlValue', 0.1, 2, 0.1).name('Denoise Itensity Sigma').onChange((value) => {
-    if (customPipeline instanceof BilateralMean) {
-      settings.DenoiseControlValue = value;
+  const denoiseFolder = gui.addFolder('Denoise');
+  denoiseFolder.add(settings, 'denoiseCoef', 0.1, 2, 0.1).name('Itensity Sigma').onChange((value) => {
+    try {
       customPipeline.updateParam('strength', value);
+    } catch (e) {
+      console.log(e);
     }
   });
-  gui.add(settings, 'DenoiseControlValue2', 0.5, 10, 1).name('Denoise Spatial Sigma').onChange((value) => {
-    if (customPipeline instanceof BilateralMean) {
-      settings.DenoiseControlValue2 = value;
+  denoiseFolder.add(settings, 'denoiseCoef2', 0.5, 10, 1).name('Spatial Sigma').onChange((value) => {
+    try {
       customPipeline.updateParam('strength2', value);
+    } catch (e) {
+      console.log(e);
     }
   });
 
   // Video Pause/Resume
   let isVideoPaused = false;
-  gui.add({
-    toggleVideo() {
-      if (isVideoPaused) {
-        video.play();
-        isVideoPaused = false;
-        console.log('Video resumed');
-      } else {
-        video.pause();
-        isVideoPaused = true;
-        console.log('Video paused');
-      }
-    },
-  }, 'toggleVideo').name('Pause/Resume');
+  if (!imageURL) {
+    generalFolder.add({
+      toggleVideo() {
+        if (isVideoPaused) {
+          video.play();
+          isVideoPaused = false;
+          console.log('Video resumed');
+        } else {
+          video.pause();
+          isVideoPaused = true;
+          console.log('Video paused');
+        }
+      },
+    }, 'toggleVideo').name('Pause/Resume');
+  }
 
   // Adjust video progress
   let isUserInteracting = false;
@@ -209,33 +319,32 @@ const init: SampleInit = async ({
     }
   });
 
-  gui.add(videoProgress, 'time', 0, video.duration, 0.1)
-    .name('Video Progress')
-    .listen()
-    .onChange(() => {
-      isUserInteracting = true;
-      video.currentTime = videoProgress.time;
-    })
-    .onFinishChange(() => {
-      isUserInteracting = false;
-    });
+  if (!imageURL) {
+    generalFolder.add(videoProgress, 'time', 0, video.duration, 0.1)
+      .name('Video Progress')
+      .listen()
+      .onChange(() => {
+        isUserInteracting = true;
+        video.currentTime = videoProgress.time;
+      })
+      .onFinishChange(() => {
+        isUserInteracting = false;
+      });
+  }
 
-  gui.add(settings, 'comparisonEnabled')
+  generalFolder.add(settings, 'compareOn')
     .name('Comparison')
     .onChange((value) => {
-      settings.comparisonEnabled = value;
       device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([value ? 1 : 0]));
     });
-
-  gui.add(settings, 'splitRatio', 0, 100, 0.1)
-    .name('Split Ratio %')
+  generalFolder.add(settings, 'splitRatio', 0, 100, 0.1)
+    .name('Split Line%')
     .onChange((value) => {
-      settings.splitRatio = value;
       device.queue.writeBuffer(splitRatioBuffer, 0, new Float32Array([value / 100]));
     });
 
   // initial comparsion setting
-  if (settings.comparisonEnabled) {
+  if (settings.compareOn) {
     device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([1]));
   } else {
     device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([0]));
@@ -346,13 +455,18 @@ const init: SampleInit = async ({
   updateRenderBindGroup();
 
   effectController.onChange((value) => {
-    settings.Effects = value;
+    settings.effect = value;
     updatePipeline();
     updateRenderBindGroup();
     updateCanvasSize();
   });
 
+  for (const folder in gui.__folders) {
+    gui.__folders[folder].open();
+  }
+
   function frame() {
+    stats.begin();
     // fetch a new frame from video element into texture
     if (!video.paused) {
       // fetch a new frame from video element into texture
@@ -385,23 +499,48 @@ const init: SampleInit = async ({
     passEncoder.draw(6);
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
+    stats.end();
 
-    if (settings.requestFrame === 'requestVideoFrameCallback') {
-      video.requestVideoFrameCallback(frame);
-    } else {
-      requestAnimationFrame(frame);
-    }
-  }
+    // if (imageURL) {
+    //   return;
+    // }
 
-  if (settings.requestFrame === 'requestVideoFrameCallback') {
+    // if (settings.requestFrame === 'requestVideoFrameCallback') {
     video.requestVideoFrameCallback(frame);
-  } else {
-    requestAnimationFrame(frame);
+    //   console.log('requestVideoFrameCallback');
+    // } else {
+    //   requestAnimationFrame(frame);
+    //   console.log('requestAnimationFrame');
+    // }
   }
+
+  // if (settings.requestFrame === 'requestVideoFrameCallback') {
+  video.requestVideoFrameCallback(frame);
+  // } else {
+  //   requestAnimationFrame(frame);
+  // }
+
+  // if (imageURL) {
+  //   frame();
+  //   return;
+  // }
+
+  const destroy = () => {
+    video.pause();
+    video.src = '';
+    video.load();
+    imageURL = 'something';
+    for (const folder in gui.__folders) {
+      gui.removeFolder(gui.__folders[folder]);
+    }
+    console.log('previous loop destroyed');
+  };
+
+  return destroy;
 };
 
 const VideoUploading: () => JSX.Element = () => makeSample({
-  name: 'WebGPU Accelerated Anime 4K Upscaling',
+  name: 'WebGPU Accelerated Anime4K',
   description: '',
   gui: true,
   init,

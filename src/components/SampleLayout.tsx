@@ -17,7 +17,8 @@ export type SampleInit = (params: {
   gui?: GUI;
   stats?: Stats;
   videoURL?: string;
-}) => void | Promise<void>;
+  imageURL?: string;
+}) => Promise<() => void>;
 
 const SampleLayout: React.FunctionComponent<
   React.PropsWithChildren<{
@@ -30,10 +31,9 @@ const SampleLayout: React.FunctionComponent<
     init: SampleInit;
   }>
 > = (props) => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const guiParentRef = useRef<HTMLDivElement | null>(null);
   const gui: GUI | undefined = useMemo(() => {
-    if (props.gui && process.browser) {
+    if (process.browser) {
       const dat = require('dat.gui');
       return new dat.GUI({ autoPlace: false });
     }
@@ -42,66 +42,78 @@ const SampleLayout: React.FunctionComponent<
 
   const statsParentRef = useRef<HTMLDivElement | null>(null);
   const stats: Stats | undefined = useMemo(() => {
-    if (props.stats && process.browser) {
+    if (typeof window !== 'undefined') {
       const Stats = require('stats-js');
       return new Stats();
     }
     return undefined;
   }, []);
 
-  const [videoURL, setVideoURL] = useState('../assets/video/OnePunchMan.mp4');
-  const handleFileChange = (event) => {
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const [videoURL, setVideoURL] = useState('../assets/video/FinalDemo1.mp4');
+  const handleVideoChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       const localURL = URL.createObjectURL(file);
+      setImageURL(null);
       setVideoURL(localURL);
+    }
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
     }
   };
 
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const [imageURL, setImageURL] = useState(null);
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const localURL = URL.createObjectURL(file);
+      setImageURL(localURL);
+    }
+    if (videoInputRef.current) {
+      videoInputRef.current.value = '';
+    }
+  }
+
   const [error, setError] = useState<unknown | null>(null);
 
+  const canvasParentRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
+    if (stats && statsParentRef.current) {
+      stats.dom.style.position = 'absolute';
+      stats.dom.style.right = 'auto';
+      stats.dom.style.top = '0px';
+      stats.dom.style.left = '0px';
+      statsParentRef.current.appendChild(stats.dom);
+      stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    }
     if (gui && guiParentRef.current) {
       guiParentRef.current.appendChild(gui.domElement);
-
-      // HACK: useEffect() is sometimes called twice, resulting in the GUI being populated twice.
-      // Erase any existing controllers before calling init() on the sample.
-      while (gui.__controllers.length > 0) {
-        gui.__controllers[0].remove();
-      }
     }
-
+    let canvas: HTMLCanvasElement;
+    if (canvasParentRef.current) {
+      canvasParentRef.current.innerHTML = '';
+      canvas = document.createElement('canvas');
+      canvasParentRef.current.appendChild(canvas);
+    }
     const pageState = {
       active: true,
     };
+    const p = props.init({
+      canvas,
+      pageState,
+      gui,
+      stats,
+      videoURL,
+      imageURL,
+    });
     const cleanup = () => {
-      pageState.active = false;
+      p.then(destroy => destroy());
     };
-    try {
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        throw new Error('The canvas is not available');
-      }
-      const p = props.init({
-        canvas,
-        pageState,
-        gui,
-        stats,
-        videoURL,
-      });
-
-      if (p instanceof Promise) {
-        p.catch((err: Error) => {
-          console.error(err);
-          setError(err);
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err);
-    }
     return cleanup;
-  }, [videoURL]);
+  }, [videoURL, imageURL]);
 
   return (
     <main>
@@ -117,24 +129,29 @@ const SampleLayout: React.FunctionComponent<
           </>
         ) : null}
       </div>
+      <div>Upload Video</div>
+      <input type="file" accept="video/*" onChange={handleVideoChange} ref={videoInputRef} />
+      <div>Upload Image</div>
+      <input type="file" accept="image/*" onChange={handleImageChange} ref={imageInputRef} />
       <div className={styles.canvasContainer}>
         <div
           style={{
             position: 'absolute',
             left: 10,
           }}
+          id="statsParent"
           ref={statsParentRef}
-        ></div>
+        />
         <div
           style={{
             position: 'absolute',
             right: 10,
           }}
+          id="guiParent"
           ref={guiParentRef}
-        ></div>
-        <canvas ref={canvasRef}></canvas>
+        />
+        <div id="canvasParent" ref={canvasParentRef} />
       </div>
-      <input type="file" accept="video/*" onChange={handleFileChange} />
     </main>
   );
 };

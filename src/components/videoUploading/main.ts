@@ -1,3 +1,4 @@
+/* eslint-disable no-use-before-define */
 /* eslint-disable consistent-return */
 /* eslint-disable guard-for-in */
 /* eslint-disable no-restricted-syntax */
@@ -127,20 +128,20 @@ const init: SampleInit = async ({
   });
 
   // GUI
-  let lastFrameTime = Date.now();
-  let frameCount = 0;
-  const fpsCounter = { fps: 0 };
-  gui.add(fpsCounter, 'fps').name('FPS').listen();
+  // let lastFrameTime = Date.now();
+  // let frameCount = 0;
+  // const fpsCounter = { fps: 0 };
+  // gui.add(fpsCounter, 'fps').name('FPS').listen();
 
-  function updateFPS() {
-    const now = Date.now();
-    frameCount += 1;
-    if (now - lastFrameTime >= 1000) {
-      fpsCounter.fps = frameCount;
-      frameCount = 0;
-      lastFrameTime = now;
-    }
-  }
+  // function updateFPS() {
+  //   const now = Date.now();
+  //   frameCount += 1;
+  //   if (now - lastFrameTime >= 1000) {
+  //     fpsCounter.fps = frameCount;
+  //     frameCount = 0;
+  //     lastFrameTime = now;
+  //   }
+  // }
 
   const settings: Settings = {
     requestFrame: 'requestVideoFrameCallback',
@@ -202,8 +203,8 @@ const init: SampleInit = async ({
 
   function updateCanvasSize() {
     // setting canvas dimensions
-    canvas.width = customPipeline.getOutputTexture().width * devicePixelRatio;
-    canvas.height = customPipeline.getOutputTexture().height * devicePixelRatio;
+    canvas.width = customPipeline.getOutputTexture().width;
+    canvas.height = customPipeline.getOutputTexture().height;
     canvas.style.width = `${customPipeline.getOutputTexture().width}px`;
     canvas.style.height = `${customPipeline.getOutputTexture().height}px`;
   }
@@ -262,6 +263,7 @@ const init: SampleInit = async ({
   deblurFolder.add(settings, 'deblurCoef', 0.1, 15, 0.1).name('Strength').onChange((value) => {
     try {
       customPipeline.updateParam('strength', value);
+      oneFrame();
     } catch (e) {
       console.log(e);
     }
@@ -270,6 +272,7 @@ const init: SampleInit = async ({
   denoiseFolder.add(settings, 'denoiseCoef', 0.1, 2, 0.1).name('Itensity Sigma').onChange((value) => {
     try {
       customPipeline.updateParam('strength', value);
+      oneFrame();
     } catch (e) {
       console.log(e);
     }
@@ -277,6 +280,7 @@ const init: SampleInit = async ({
   denoiseFolder.add(settings, 'denoiseCoef2', 0.5, 10, 1).name('Spatial Sigma').onChange((value) => {
     try {
       customPipeline.updateParam('strength2', value);
+      oneFrame();
     } catch (e) {
       console.log(e);
     }
@@ -336,11 +340,13 @@ const init: SampleInit = async ({
     .name('Comparison')
     .onChange((value) => {
       device.queue.writeBuffer(compareBuffer, 0, new Uint32Array([value ? 1 : 0]));
+      oneFrame();
     });
   generalFolder.add(settings, 'splitRatio', 0, 100, 0.1)
     .name('Split Line%')
     .onChange((value) => {
       device.queue.writeBuffer(splitRatioBuffer, 0, new Float32Array([value / 100]));
+      oneFrame();
     });
 
   // initial comparsion setting
@@ -455,14 +461,46 @@ const init: SampleInit = async ({
   updateRenderBindGroup();
 
   effectController.onChange((value) => {
-    settings.effect = value;
+    // settings.effect = value;
     updatePipeline();
     updateRenderBindGroup();
     updateCanvasSize();
+    oneFrame();
   });
 
   for (const folder in gui.__folders) {
     gui.__folders[folder].open();
+  }
+
+  function oneFrame() {
+    if (!video.paused) {
+      return;
+    }
+    updateVideoFrameTexture();
+    // initialize command recorder
+    const commandEncoder = device.createCommandEncoder();
+
+    // encode compute pipeline commands
+    customPipeline.pass(commandEncoder);
+
+    // dispatch render pipeline
+    const passEncoder = commandEncoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: context.getCurrentTexture().createView(),
+          clearValue: {
+            r: 0.0, g: 0.0, b: 0.0, a: 1.0,
+          },
+          loadOp: 'clear',
+          storeOp: 'store',
+        },
+      ],
+    });
+    passEncoder.setPipeline(renderPipeline);
+    passEncoder.setBindGroup(0, renderBindGroup);
+    passEncoder.draw(6);
+    passEncoder.end();
+    device.queue.submit([commandEncoder.finish()]);
   }
 
   function frame() {
@@ -473,7 +511,7 @@ const init: SampleInit = async ({
       updateVideoFrameTexture();
     }
 
-    updateFPS();
+    // updateFPS();
 
     // initialize command recorder
     const commandEncoder = device.createCommandEncoder();
@@ -509,7 +547,7 @@ const init: SampleInit = async ({
     video.requestVideoFrameCallback(frame);
     //   console.log('requestVideoFrameCallback');
     // } else {
-    //   requestAnimationFrame(frame);
+    // requestAnimationFrame(frame);
     //   console.log('requestAnimationFrame');
     // }
   }
@@ -517,7 +555,7 @@ const init: SampleInit = async ({
   // if (settings.requestFrame === 'requestVideoFrameCallback') {
   video.requestVideoFrameCallback(frame);
   // } else {
-  //   requestAnimationFrame(frame);
+  // requestAnimationFrame(frame);
   // }
 
   // if (imageURL) {

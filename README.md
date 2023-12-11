@@ -16,7 +16,7 @@ Explore the [Anime4K-WebGPU Package](https://github.com/Anime4KWebBoost/Anime4K-
 <img src="Demo/Demo.gif" width="800px">
 
 ## Tutorial
-<img src="Demo/UI.png" width="800px">
+<img src="Demo/UI1.png" width="800px">
 <img src="Demo/UI2.png" width="800px">
 
 1. Click "Choose File" to upload video/Textures

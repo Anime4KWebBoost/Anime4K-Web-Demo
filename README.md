@@ -17,12 +17,12 @@ Explore the [Anime4K-WebGPU Package](https://github.com/Anime4KWebBoost/Anime4K-
 
 ## Tutorial
 <img src="Demo/UI.png" width="800px">
-This is the UI of this demo. 
+<img src="Demo/UI2.png" width="800px">
 
 1. Click "Choose File" to upload video/Textures
 2. Select effect from "Effects" drop down menu
 3. Modify related parameters
-4. If want to compare the video before and after applying effects, check the "Comparison" box
+4. To compare the video before and after the effect application, select the "Comparison" checkbox.
 5. Click "Download Canvas" to download current frame result
 
 

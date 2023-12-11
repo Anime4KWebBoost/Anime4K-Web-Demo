@@ -15,15 +15,15 @@ Explore the [Anime4K-WebGPU Package](https://github.com/Anime4KWebBoost/Anime4K-
 
 <img src="Demo/Demo.gif" width="800px">
 
-## UI
+## Tutorial
 <img src="Demo/UI.png" width="800px">
-This is the ui of this demo. 
+This is the UI of this demo. 
 
-1. Click "Choose File" to upload video
+1. Click "Choose File" to upload video/Textures
 2. Select effect from "Effects" drop down menu
 3. Modify related parameters
 4. If want to compare the video before and after applying effects, check the "Comparison" box
-
+5. Click "Download Canvas" to download current frame result
 
 
 
@@ -41,10 +41,8 @@ This project references a variety of resources:
   - Tutorial: [Your First WebGPU App](https://codelabs.developers.google.com/your-first-webgpu-app#0)
   - Base Code: [WebGPU Samples](https://github.com/webgpu/webgpu-samples)
 
-- **Multimedia Demonstrations**
-  - Demo Video (One Punch Man): [YouTube Video](https://www.youtube.com/watch?v=km2OPUctni4&list=LL&index=1&t=13s)
-  - Demo Pictures: [Flickr Photos](https://www.flickr.com/photos/sunshinetoday168/50383058796)
-  - Denoise Demo Video: [YouTube Denoise Demo](https://www.youtube.com/watch?v=CNenVlc1L2w)
+- **Media Demonstrations**
+  - Demo gif (Uncle from Another World): [YouTube Video](https://www.youtube.com/watch?v=UcePA8oFwe8)
 
 - **Additional Resources**
   - Process Diagrams: [ProcessOn Diagrams](https://www.processon.com/diagrams)

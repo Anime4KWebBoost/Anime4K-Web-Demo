@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@types/dom-mediacapture-transform": "^0.1.5",
-    "anime4k-webgpu": "^0.1.5",
+    "anime4k-webgpu": "^1.0.0",
     "codemirror": "^5.58.2",
     "dat.gui": "^0.7.6",
     "file-loader": "^6.2.0",

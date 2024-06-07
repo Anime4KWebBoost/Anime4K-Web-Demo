@@ -20,6 +20,14 @@ import {
   // Restore
   CNNUL,
   GANUUL,
+  Anime4KPipelineDescriptor,
+  ModeA,
+  Anime4KPresetPipelineDescriptor,
+  ModeB,
+  ModeC,
+  ModeAA,
+  ModeBB,
+  ModeCA,
 } from 'anime4k-webgpu';
 
 import { makeSample, SampleInit } from '../SampleLayout';
@@ -156,12 +164,27 @@ const init: SampleInit = async ({
   // initial pipline mode
   let customPipeline: Anime4KPipeline;
   function updatePipeline() {
+    const pipelineDescriptor: Anime4KPipelineDescriptor = {
+      device,
+      inputTexture: videoFrameTexture,
+    };
+    const presetDescriptor: Anime4KPresetPipelineDescriptor = {
+      ...pipelineDescriptor,
+      nativeDimensions: {
+        width: videoFrameTexture.width,
+        height: videoFrameTexture.height,
+      },
+      targetDimensions: {
+        width: videoFrameTexture.width * 2,
+        height: videoFrameTexture.height * 2,
+      },
+    };
     switch (settings.effect) {
       case 'Original':
-        customPipeline = new Original(videoFrameTexture);
+        customPipeline = new Original({ inputTexture: videoFrameTexture });
         break;
       case 'Deblur-DoG':
-        customPipeline = new DoG(device, videoFrameTexture);
+        customPipeline = new DoG(pipelineDescriptor);
         try {
           customPipeline.updateParam('strength', settings.deblurCoef);
         } catch (e) {
@@ -169,7 +192,7 @@ const init: SampleInit = async ({
         }
         break;
       case 'Denoise-BilateralMean':
-        customPipeline = new BilateralMean(device, videoFrameTexture);
+        customPipeline = new BilateralMean(pipelineDescriptor);
         try {
           customPipeline.updateParam('strength', settings.denoiseCoef);
           customPipeline.updateParam('strength2', settings.denoiseCoef2);
@@ -179,20 +202,38 @@ const init: SampleInit = async ({
         break;
       // Upscale
       case 'Upscale-GANx3L':
-        customPipeline = new GANx3L(device, videoFrameTexture);
+        customPipeline = new GANx3L(pipelineDescriptor);
         break;
       case 'Upscale-CNNx2UL':
-        customPipeline = new CNNx2UL(device, videoFrameTexture);
+        customPipeline = new CNNx2UL(pipelineDescriptor);
         break;
       case 'Upscale-GANx4UUL':
-        customPipeline = new GANx4UUL(device, videoFrameTexture);
+        customPipeline = new GANx4UUL(pipelineDescriptor);
         break;
       // Restore
       case 'Restore-CNNUL':
-        customPipeline = new CNNUL(device, videoFrameTexture);
+        customPipeline = new CNNUL(pipelineDescriptor);
         break;
       case 'Restore-GANUUL':
-        customPipeline = new GANUUL(device, videoFrameTexture);
+        customPipeline = new GANUUL(pipelineDescriptor);
+        break;
+      case 'Mode A':
+        customPipeline = new ModeA(presetDescriptor);
+        break;
+      case 'Mode B':
+        customPipeline = new ModeB(presetDescriptor);
+        break;
+      case 'Mode C':
+        customPipeline = new ModeC(presetDescriptor);
+        break;
+      case 'Mode A+A':
+        customPipeline = new ModeAA(presetDescriptor);
+        break;
+      case 'Mode B+B':
+        customPipeline = new ModeBB(presetDescriptor);
+        break;
+      case 'Mode C+A':
+        customPipeline = new ModeCA(presetDescriptor);
         break;
       default:
         console.log('Invalid selection');
@@ -239,6 +280,13 @@ const init: SampleInit = async ({
       // Restore
       'Restore-CNNUL',
       'Restore-GANUUL',
+      // presets
+      'Mode A',
+      'Mode B',
+      'Mode C',
+      'Mode A+A',
+      'Mode B+B',
+      'Mode C+A',
     ],
   )
     .name('Effect');
